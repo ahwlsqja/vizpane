@@ -1,0 +1,24 @@
+{
+  "name": "vizpane",
+  "version": "0.2.0",
+  "description": "Rendered Mermaid diagrams for Claude Code and Codex answers, in a cmux pane next to the agent.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahwlsqja/vizpane.git"
+  },
+  "homepage": "https://github.com/ahwlsqja/vizpane",
+  "bugs": {
+    "url": "https://github.com/ahwlsqja/vizpane/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "e2e": "node scripts/e2e-cmux.mjs",
+    "vendor": "node scripts/vendor.mjs"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "vizpane",
+  "owner": {
+    "name": "ahwlsqja"
+  },
+  "metadata": {
+    "description": "vizpane: rendered Mermaid diagrams for coding agents in cmux"
+  },
+  "plugins": [
+    {
+      "name": "vizpane",
+      "source": "./plugins/vizpane",
+      "description": "Rendered Mermaid diagrams for Claude Code and Codex answers, in a cmux pane next to the agent.",
+      "version": "0.2.0",
+      "license": "MIT",
+      "author": {
+        "name": "ahwlsqja"
+      },
+      "homepage": "https://github.com/ahwlsqja/vizpane"
+    }
+  ]
+}

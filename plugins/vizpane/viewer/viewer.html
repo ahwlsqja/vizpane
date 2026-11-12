@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vizpane</title>
+<link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+<header>
+  <span class="dot"></span><b id="ws">vizpane</b><span id="count"></span>
+  <span class="spacer"></span>
+  <button id="btn-only" type="button" aria-pressed="false"></button>
+</header>
+<main id="timeline"><div class="empty" id="empty"></div></main>
+<div id="zoom"></div>
+
+<script src="vendor/marked.umd.js"></script>
+<script src="vendor/purify.min.js"></script>
+<script src="vendor/mermaid.min.js"></script>
+<script src="viz-core.js"></script>
+<script src="viewer.js"></script>
+</body>
+</html>

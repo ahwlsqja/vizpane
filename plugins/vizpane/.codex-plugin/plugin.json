@@ -1,0 +1,28 @@
+{
+  "name": "vizpane",
+  "version": "0.2.0",
+  "description": "Rendered Mermaid diagrams for Claude Code and Codex answers, in a cmux pane next to the agent.",
+  "license": "MIT",
+  "author": {
+    "name": "ahwlsqja"
+  },
+  "homepage": "https://github.com/ahwlsqja/vizpane",
+  "repository": "https://github.com/ahwlsqja/vizpane",
+  "keywords": [
+    "cmux",
+    "mermaid",
+    "diagram",
+    "viewer",
+    "claude-code",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "hooks": "./codex/hooks.json",
+  "interface": {
+    "displayName": "vizpane",
+    "shortDescription": "Mermaid diagrams from answers, rendered in a cmux pane",
+    "longDescription": "When a turn ends and the answer contains a Mermaid code block, vizpane shows the answer rendered in a cmux browser pane. No server, no daemon, local files only.",
+    "developerName": "ahwlsqja",
+    "category": "Developer Tools"
+  }
+}

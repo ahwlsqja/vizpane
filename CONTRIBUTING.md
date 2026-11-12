@@ -1,0 +1,62 @@
+# Contributing
+
+Bug reports, feature requests and pull requests are welcome. For a larger change, open an issue first so the direction can be agreed before you write code.
+
+## Requirements
+
+- Node.js 20 or later. There are no dependencies to install.
+- cmux, only for the end-to-end script. Unit tests do not need it.
+- `gh` and `cargo`, only for the Codex terminal check.
+
+## Tests
+
+```sh
+node --test
+```
+
+Unit tests cover the store, hook, cmux handling (against a stub executable), fence extraction and the viewer logic in `viz-core.js`. They run without cmux.
+
+```sh
+node scripts/e2e-cmux.mjs
+```
+
+The end-to-end script drives a real viewer. It must run inside a cmux terminal (`CMUX_WORKSPACE_ID` set). It uses a temporary state root, opens a viewer pane in the current workspace, pushes fixtures, checks the live page through `cmux browser eval`, and closes the pane. Pass `--keep` to leave the pane open. Run it when you change `viewer.js`, `viz-core.js`, `lib/cmux.mjs` or the sanitising rules.
+
+## Scripts
+
+| Command | Purpose |
+|---|---|
+| `node scripts/vendor.mjs` | Reinstalls the pinned versions of Mermaid, marked and DOMPurify into a temporary directory and copies the bundles and licence files to `plugins/vizpane/viewer/vendor`. Needs `npm` and network access. When you change a version, change it in the script too. |
+| `node scripts/check-codex-terminal.mjs` | Builds the Codex TUI's Mermaid text renderer from the installed Codex version and checks that every Mermaid example in the `viz-style` skill is accepted. Needs `gh`, `cargo` and `codex`. Options: `--width <columns>`, `--tag <tag>`, and file paths. |
+
+## Versions
+
+The version is stored in four places that must match:
+
+- `plugins/vizpane/VERSION`
+- `VERSION` in `plugins/vizpane/viewer/viewer.js`
+- `plugins/vizpane/.claude-plugin/plugin.json`
+- `plugins/vizpane/.codex-plugin/plugin.json`
+
+A unit test fails if they differ. A mismatch would make every push reload the viewer, because the page compares its `viz.version` with `VERSION`. When you release, also update `package.json`, `.claude-plugin/marketplace.json` and `CHANGELOG.md`.
+
+## Code style
+
+- Node built-ins only. Do not add a dependency.
+- No build step. The repository contains what runs.
+- Plugin code is ES modules (`.mjs`). Viewer code is classic scripts, not modules, because the page runs from `file://` where modules and `fetch()` of local files are blocked. `viz-core.js` must not touch the DOM so that tests can load it in `node:vm`.
+- The hook must never fail the agent. Anything that runs from a hook catches its errors and logs them.
+- Anything derived from an answer is untrusted. Never insert it with `innerHTML` without sanitising it, and never build a shell command from it.
+- Keep comments short and explain why, not what.
+
+## Pull requests
+
+A good pull request:
+
+- Does one thing and says why in the description.
+- Adds or updates a test for the behaviour it changes, or says why it cannot.
+- Passes `node --test`. For viewer or cmux changes, say whether you ran `node scripts/e2e-cmux.mjs`.
+- Updates the documentation in `docs/` when behaviour changes. If you change a `%% viz:` verb, update `docs/diagram-comments.md`, the `viz-style` skill and the session context in `plugins/vizpane/lib/payload.mjs` together.
+- Adds a line to `CHANGELOG.md` under an `Unreleased` heading.
+
+Security issues go through the process in [SECURITY.md](SECURITY.md), not through public issues.
