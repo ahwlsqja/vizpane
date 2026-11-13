@@ -18,6 +18,8 @@ function fakePlugin(version, tag) {
   w('viewer/vendor/mermaid.min.js', `mermaid ${tag}`);
   w('bin/vizpane.mjs', `bin ${tag}`);
   w('lib/store.mjs', `lib ${tag}`);
+  w('inline/render.swift', `swift ${tag}`);
+  w('inline/render.html', `page ${tag}`);
   w('skills/viz/SKILL.md', 'not copied');
 }
 const read = (rel) => readFileSync(join(home, rel), 'utf8');
@@ -37,6 +39,8 @@ test('copies to the state-root layout', () => {
   assert.equal(read('vendor/mermaid.min.js'), 'mermaid a');
   assert.equal(read('bin/vizpane.mjs'), 'bin a');
   assert.equal(read('lib/store.mjs'), 'lib a');
+  assert.equal(read('inline/render.swift'), 'swift a');
+  assert.equal(read('inline/render.html'), 'page a');
   assert.ok(!existsSync(join(home, 'skills')));
 });
 
@@ -48,6 +52,7 @@ test('skipped when versions match, runs when they differ, forced when asked', ()
   assert.equal(read('viewer.html'), 'html a');
   assert.equal(syncApp(plugin, { force: true }), true);
   assert.equal(read('viewer.html'), 'html b');
+  assert.equal(read('inline/render.swift'), 'swift b');
   fakePlugin('1.1.0', 'c');
   assert.equal(syncApp(plugin), true);
   assert.equal(read('viewer.html'), 'html c');

@@ -1,6 +1,9 @@
 # How vizpane works
 
-vizpane has no server and no daemon. A hook script stores the answer as a small script file, and a static HTML page in a cmux browser pane loads it.
+vizpane has no server and no daemon. It has two paths.
+
+- **Side pane (Codex, and `push` for any agent).** A hook script stores the answer as a small script file, and a static HTML page in a cmux browser pane loads it. This is the path described first.
+- **Inline (Claude Code).** A Claude Code mod draws the diagram as a picture under the answer. See [Inline pictures in Claude Code](#inline-pictures-in-claude-code).
 
 ```text
 +------------------------+
@@ -49,9 +52,11 @@ All real work happens in that worker, so the agent turn never waits on cmux. Eve
 | Claude Code | nothing |
 | Codex | `{"continue":true}` |
 
+In Claude Code, when the inline renderer is built and `VIZPANE_INLINE` is not `off`, the worker stores the answer in `last/` and does not publish it to the pane, because the mod already drew it. Codex is unchanged, and `push` always publishes.
+
 The Stop payload provides three fields: `last_assistant_message`, `session_id`, `cwd`. A payload without a non-empty `last_assistant_message` is ignored.
 
-The Claude Code plugin also registers a SessionStart hook (`startup`, `resume`, `clear`, `compact`). It copies the viewer into the state root if the installed version is outdated. Inside a cmux workspace where auto push is not turned off, it adds the diagram-writing rules to the session context. The Codex plugin registers only the Stop hook; see [Codex setup](codex-setup.md).
+The Claude Code plugin also registers a SessionStart hook (`startup`, `resume`, `clear`, `compact`). It copies the app files into the state root if the installed version is outdated. Inside a cmux workspace where auto push is not turned off, it adds the diagram-writing rules to the session context. The Codex plugin registers only the Stop hook; see [Codex setup](codex-setup.md).
 
 ## What is stored and where
 
@@ -63,6 +68,8 @@ The state root is `~/.local/state/vizpane`. Set `VIZPANE_HOME` to use another di
   viewer.html          the viewer page, with viewer.css, viewer.js, viz-core.js
   vendor/              marked, DOMPurify, Mermaid (local copies)
   bin/  lib/           copy of the CLI, so the path never changes
+  bin/viz-render       inline renderer, built from inline/render.swift (with a .stamp file)
+  inline/              render.swift, render.html, and cache/ (PNG pictures and size files)
   jobs/                hook payloads waiting for the worker
   vizpane.log          one line per push, one per error
   data/<workspace>/
@@ -81,7 +88,7 @@ The state root is `~/.local/state/vizpane`. Set `VIZPANE_HOME` to use another di
 - Files are written to a temporary name and renamed, so the viewer never reads a half-written file.
 - The lock is a directory created with `mkdir`. A waiting process retries for up to 3000 ms. A lock older than 10000 ms is treated as stale and removed.
 
-The app files are copied from the plugin into the state root because the viewer is loaded from `file://` and can only read scripts from its own directory tree. `vizpane sync` forces the copy; it also happens automatically when `VERSION` differs.
+The app files are copied from the plugin into the state root because the viewer is loaded from `file://` and can only read scripts from its own directory tree. `vizpane sync` forces the copy (the `inline/` directory is copied too); it also happens automatically when `VERSION` differs.
 
 ## When an answer is pushed
 
@@ -104,7 +111,8 @@ Commands, run as `node ~/.local/state/vizpane/bin/vizpane.mjs <command>`:
 | `open` | Open the viewer if it is not open |
 | `off` / `on` | Turn automatic pushing off or on for this workspace. `push` still works while off |
 | `sync` | Copy the app files into the state root now |
-| `doctor` | Check Node, the state root, version, vendor files, `CMUX_WORKSPACE_ID` and `cmux ping` |
+| `renderer` | Build the inline renderer if it is missing or built for another version. Prints one JSON line, `{"ok":true,"path":...}` or `{"ok":false,"error":...}`, and exits 0 |
+| `doctor` | Check Node, the state root, version, vendor files, `CMUX_WORKSPACE_ID` and `cmux ping`. One more line reports the inline renderer (`ok` or `skip`) and never fails the run |
 
 The agent-facing `viz` skill wraps these commands. `off` does not stop the answer from being stored in `last/`.
 
@@ -122,6 +130,39 @@ For each push the worker takes the workspace lock and then:
 If you close the pane, the next diagram answer opens it again and `boot.js` restores the earlier cards (up to 30). Taking the lock means two agents that finish together create one viewer, not two.
 
 The reload goes through cmux because a `file://` page that reloads itself from its own script does not finish loading in the cmux browser.
+
+## Inline pictures in Claude Code
+
+Claude Code can load a hooks module (a mod) from a plugin. vizpane's mod is `claude/register.tsx`, named under `modules` in `claude/hooks.json`. It hooks the rendering of each assistant message and draws a picture under the reply.
+
+```text
+assistant reply (Markdown)
+        |  ui.render, AssistantMessage, terminal only
+        v
+ mod: find complete ```mermaid fences
+        |  one render per source and theme
+        v
+ viz-render (Swift helper)  ->  <state root>/inline/cache/<hash>-<theme>.png
+        |  offscreen WebKit view runs Mermaid 12, network loads blocked
+        v
+ mod: fold each drawn block to "▸ diagram N", add an Image under the reply
+```
+
+Steps:
+
+1. At session start the mod runs `vizpane renderer`. That command syncs the app files and builds `<state root>/bin/viz-render` with `swiftc -O` if the file is missing or its stamp names another plugin version. The build takes a few seconds and happens once per version. If it cannot run (not macOS, no `swiftc`, `VIZPANE_INLINE=off`), the mod remembers that inline is unavailable.
+2. The mod runs `viz-render --cell` once. The helper finds the first parent process with a controlling terminal, reads the terminal's size in cells and in pixels (`TIOCGWINSZ`), and divides by the main screen's scale factor. That gives the cell size in points. If the terminal does not report pixel sizes, the mod uses 8 points wide and an aspect of 2.1.
+3. For each complete `mermaid` fence in a reply, the mod writes the source to the cache and runs `viz-render render.html source.mmd out.png dark|light`. The theme is `light` when Claude Code's theme setting contains `light`, otherwise `dark`. The helper prints the picture size in CSS pixels.
+4. The mod replaces each drawn block by a one-line marker (`▸ diagram N`, or `▸ 도식 N` when `LANG` starts with `ko`) and draws an `Image` per picture under the reply, with a dim caption. A block that failed to render stays as code, and no picture or error row is added for it.
+5. The size of the picture box in cells comes from the picture's size and the cell size. The box is at most 120 columns and 30 rows. When that would shrink the picture below 0.6 of its size, the box grows up to the terminal height less 6 rows.
+
+The mod renders each source once per session. The same source and theme reuse `<hash>-<theme>.png` and its size file from earlier sessions. Files older than 7 days are deleted at session start.
+
+The pure logic (finding fences, folding, cell arithmetic, hashing) is in `claude/inline-core.mjs` and is tested with `node --test`. The cell arithmetic follows [claude-code-figures-plugin](https://github.com/natsukium/claude-code-figures-plugin) (Apache-2.0).
+
+When the helper is unavailable, the mod does nothing and Claude Code draws the reply as usual. The Stop hook then publishes the answer to the side pane, as for Codex. A render that fails or times out (15 seconds in the helper, 20 seconds in the mod) leaves that one block as code.
+
+`render.html` uses the same diagram upgrade (`%% viz:` comments) and the same Mermaid `secure` list as the viewer, so a diagram cannot change the theme or fonts. See [SECURITY.md](../SECURITY.md) for the isolation of the helper.
 
 ## Rendering in the page
 
@@ -157,6 +198,6 @@ The viewer follows `prefers-color-scheme`. To force a theme, set `VIZPANE_THEME=
 
 | Alternative | Why it was not used |
 |---|---|
-| Inline images in the terminal | The agent TUI owns the screen. A tool cannot draw into the conversation. |
+| Inline images for Codex | Codex has no extension point for drawing into the conversation, so its pictures stay in the side pane. Claude Code has one, and uses it. |
 | A local web server | Not needed. A static page at `file://` plus `cmux browser eval` is enough, and there is no process to start, stop or secure. |
 | An MCP tool | The agent would have to call it on every answer. A Stop hook runs without the agent's involvement. |

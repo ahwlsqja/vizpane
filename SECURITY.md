@@ -19,12 +19,27 @@ vizpane runs on your machine, as your user. It has no server and listens on no p
 
 Content-Security-Policy: a `<meta>` Content-Security-Policy is not enforced for `file://` pages in the cmux browser (a remote image still loaded when one was set). The viewer therefore does not rely on one. It removes remote resources itself, as listed above.
 
+## What the inline renderer does
+
+In Claude Code, a small native helper (`viz-render`, built from `inline/render.swift`) renders Mermaid blocks of the answer to PNG files. Diagram source is untrusted, so the helper:
+
+- Runs Mermaid in an offscreen WebKit view, in a separate helper process, with no Dock icon and no focus.
+- Compiles a content rule list that blocks `http`, `https`, `ws` and `wss` loads before it opens the page. The page reads only local files under the state root.
+- Uses Mermaid's strict security level, and a `secure` list so that a diagram's own `init` or front matter cannot change the security level, theme, `themeCSS`, `themeVariables` or fonts.
+- Stops after 15 seconds.
+- Passes the source as a file argument. No shell parses it.
+
+The helper is built on your machine with `swiftc` from `inline/render.swift`; no binary is downloaded. With `--cell` it opens the controlling terminal of a parent process read-only, only to read its size.
+
+Pictures and their size files are cached in `<state root>/inline/cache/` for 7 days. They contain what the diagrams show. Set `VIZPANE_INLINE=off` to turn the inline path off.
+
 ## What is stored
 
 | Where | What | Mode |
 |---|---|---|
 | `~/.local/state/vizpane/data/<workspace>/turns/` | The 30 newest diagram answers of the workspace, in full | 0600 (directories 0700) |
 | `~/.local/state/vizpane/data/<workspace>/last/` | The latest answer of each session, with or without a diagram. Written even when auto push is off. Not pruned | 0600 |
+| `~/.local/state/vizpane/inline/cache/` | Diagram sources, rendered PNG pictures and size files, deleted after 7 days | Default file mode, inside the 0700 state root |
 | `~/.local/state/vizpane/jobs/` | The hook payload until the worker reads it, then deleted | 0600 |
 | `~/.local/state/vizpane/vizpane.log` | Workspace id, turn id, action and error messages. No answer text | 0600 |
 

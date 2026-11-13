@@ -1,3 +1,7 @@
 node_modules/
 .DS_Store
 *.log
+
+# Written by Claude Code when the plugin folder is loaded as a mod (editor types)
+plugins/vizpane/tsconfig.json
+plugins/vizpane/.claude-plugin/types/

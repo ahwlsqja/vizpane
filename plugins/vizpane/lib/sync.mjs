@@ -41,6 +41,7 @@ export function syncApp(pluginRoot = defaultPluginRoot(), { force = false } = {}
   copyTree(join(pluginRoot, 'viewer'), root);
   copyTree(join(pluginRoot, 'bin'), join(root, 'bin'));
   copyTree(join(pluginRoot, 'lib'), join(root, 'lib'));
+  copyTree(join(pluginRoot, 'inline'), join(root, 'inline'));
   writeFileSync(join(root, 'VERSION'), `${version}\n`, { mode: 0o600 });
   return true;
 }

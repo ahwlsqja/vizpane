@@ -1,0 +1,40 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: transparent; }
+  * { word-break: keep-all; }
+  #stage { display: inline-block; padding: 14px 16px; border-radius: 10px;
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; }
+  #stage svg { display: block; max-width: none; }
+</style></head>
+<body><div id="stage"></div>
+<script src="../vendor/mermaid.min.js"></script>
+<script src="../viz-core.js"></script>
+<script>
+// The page lives in <state root>/inline/; the scripts above sit in the state root.
+// Renders one diagram and reports its size. Called by the native helper (render.swift) through callAsyncJavaScript.
+window.vizRender = async function (src, scheme) {
+  var dark = scheme !== 'light'
+  var theme = dark
+    ? { background: '#1a1e25', primaryColor: '#1f2a3d', primaryTextColor: '#dbe6fb', primaryBorderColor: '#7aa5f5', lineColor: '#9aa5b5', secondaryColor: '#1d3029', tertiaryColor: '#3a3217', noteBkgColor: '#3a3217', noteTextColor: '#f3e2a4', noteBorderColor: '#a8892b', actorBkg: '#1f2a3d', actorBorder: '#7aa5f5', actorTextColor: '#dbe6fb', actorLineColor: '#4a5566', signalColor: '#cfd6e0', signalTextColor: '#cfd6e0', labelBoxBkgColor: '#1f2a3d', labelBoxBorderColor: '#7aa5f5', labelTextColor: '#dbe6fb', loopTextColor: '#dbe6fb', activationBkgColor: '#2a3b59', activationBorderColor: '#7aa5f5', sequenceNumberColor: '#13161b' }
+    : { background: '#ffffff', primaryColor: '#eef3fb', primaryTextColor: '#16305f', primaryBorderColor: '#3b6fd1', lineColor: '#5b6676', secondaryColor: '#e3f1ec', tertiaryColor: '#fff6d6', noteBkgColor: '#fff6d6', noteTextColor: '#3d3000', noteBorderColor: '#d9b84a', actorBkg: '#eef3fb', actorBorder: '#3b6fd1', actorTextColor: '#16305f', actorLineColor: '#b9c2cf', signalColor: '#2b3442', signalTextColor: '#2b3442', labelBoxBkgColor: '#eef3fb', labelBoxBorderColor: '#3b6fd1', labelTextColor: '#16305f', loopTextColor: '#16305f', activationBkgColor: '#dfe9fb', activationBorderColor: '#3b6fd1', sequenceNumberColor: '#ffffff' }
+  var stage = document.getElementById('stage')
+  stage.style.background = dark ? '#1a1e25' : '#ffffff'
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base',
+    // Keys a diagram's own init/front matter may not change (same list as the viewer).
+    secure: ['secure', 'securityLevel', 'startOnLoad', 'maxTextSize', 'suppressErrorRendering', 'maxEdges',
+      'theme', 'themeCSS', 'themeVariables', 'fontFamily', 'altFontFamily'],
+    themeVariables: Object.assign({}, theme, { fontFamily: '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif', fontSize: '14px' }),
+    sequence: { mirrorActors: false, width: 112, height: 46, actorMargin: 22, boxMargin: 8, noteMargin: 8, messageMargin: 30, wrap: false, useMaxWidth: false },
+    flowchart: { curve: 'basis', useMaxWidth: false } })
+  try {
+    var code = vizCore.injectSemanticClasses(vizCore.upgradeSource(src), dark ? 'dark' : 'light')
+    var out = await mermaid.render('d1', code)
+    stage.innerHTML = out.svg
+    var r = stage.getBoundingClientRect()
+    return JSON.stringify({ ok: true, width: Math.ceil(r.width), height: Math.ceil(r.height) })
+  } catch (e) {
+    return JSON.stringify({ ok: false, error: String((e && e.message) || e).slice(0, 300) })
+  }
+}
+</script></body></html>

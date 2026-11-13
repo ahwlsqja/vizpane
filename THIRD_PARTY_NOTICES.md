@@ -21,3 +21,7 @@ The viewer ships unmodified distribution builds of the following libraries in `p
 The source code of elkjs is available at the address above. vizpane does not modify it.
 
 The other embedded libraries are listed, with their licences, in the `dependencies` of Mermaid's `package.json` for the version above.
+
+## Inline pictures in Claude Code
+
+The approach of drawing a picture under a reply with a Claude Code mod, and the arithmetic that turns a picture size into a box of terminal cells (`fitCells` in `plugins/vizpane/claude/inline-core.mjs`), follow [claude-code-figures-plugin](https://github.com/natsukium/claude-code-figures-plugin) by natsukium, licensed under Apache-2.0. vizpane contains no copy of its source files.

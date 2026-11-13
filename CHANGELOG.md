@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-11-14
+
+### Added
+
+- Inline pictures in Claude Code. A Claude Code mod draws each ```mermaid block of a reply as a picture directly under the reply, and folds the code block to one line.
+- A native renderer, `inline/render.swift`, that draws a diagram to PNG in an offscreen WebKit view with network loads blocked, and reports the terminal's cell size. `vizpane renderer` builds it once per version with `swiftc`.
+- `doctor` reports whether the inline renderer is built.
+- `VIZPANE_INLINE=off` turns the inline path off.
+- `scripts/check-inline.mjs` builds the renderer, draws the examples of the diagram guide, and checks that the renderer sends no network request (against a control build without the block rules).
+
+### Changed
+
+- In Claude Code, when the inline renderer is built, the Stop hook stores the answer but no longer publishes it to the side pane. Codex and `push` are unchanged.
+- The diagram guide and the session context say where the picture appears for each agent. `flowchart LR` is allowed for up to six nodes in a line.
+- Requirements: Claude Code 2.1.290 or later and the Xcode Command Line Tools for inline pictures.
+
 ## [0.2.1] - 2026-11-13
 
 ### Added

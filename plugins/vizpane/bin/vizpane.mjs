@@ -10,6 +10,7 @@ import { parseHookPayload, SESSION_CONTEXT } from '../lib/payload.mjs';
 import { stateRoot, wsId, saveLast, newestLast, isOff, setOff } from '../lib/store.mjs';
 import { publish, openViewer, runCmux } from '../lib/cmux.mjs';
 import { syncApp, pluginVersion, installedVersion } from '../lib/sync.mjs';
+import { ensureRenderer, rendererReady, inlineOff } from '../lib/renderer.mjs';
 import { log } from '../lib/log.mjs';
 
 const SELF = fileURLToPath(import.meta.url);
@@ -60,6 +61,8 @@ async function work(jobFile) {
   if (!p) return;
   const ws = wsId();
   saveLast(ws, p);
+  // In Claude Code the mod draws the picture inside the conversation, so the side pane would show it twice.
+  if (p.agent === 'claude' && !inlineOff() && rendererReady()) return;
   if (isOff(ws) || !hasMermaid(p.markdown)) return;
   await publish(p);
 }
@@ -76,6 +79,13 @@ async function push(values) {
     return publish({ ...last, title: values.title });
   }
   throw new Error('usage: vizpane push --last [--session <id>] | --file <path.md> | --stdin  [--title <t>] [--agent <name>]');
+}
+
+function inlineStatus() {
+  if (process.platform !== 'darwin') return 'skip inline renderer (not macOS)';
+  if (inlineOff()) return 'skip inline renderer (VIZPANE_INLINE=off)';
+  if (rendererReady()) return 'ok   inline renderer built';
+  return 'skip inline renderer (not built; it is built when a Claude Code session starts, or run: vizpane renderer)';
 }
 
 async function doctor() {
@@ -101,7 +111,10 @@ async function doctor() {
   } catch (e) {
     add(false, `cmux ping (${e.message.split('\n')[0]})`);
   }
+  // Optional: inline pictures need macOS and swiftc, so this line reports but never fails the run.
+  const inline = inlineStatus();
   for (const c of checks) console.log(`${c.ok ? 'ok  ' : 'FAIL'} ${c.label}`);
+  console.log(inline);
   return checks.every((c) => c.ok) ? 0 : 1;
 }
 
@@ -140,10 +153,19 @@ async function main() {
     case 'sync':
       console.log(syncApp(undefined, { force: true }) ? 'synced' : 'nothing to sync');
       return 0;
+    case 'renderer':
+      // Called by the Claude Code mod at session start; the answer is one JSON line, exit 0 either way.
+      try {
+        syncApp();
+        console.log(JSON.stringify(ensureRenderer()));
+      } catch (e) {
+        console.log(JSON.stringify({ ok: false, error: e.message }));
+      }
+      return 0;
     case 'doctor':
       return doctor();
     default:
-      console.error('usage: vizpane <hook|push|open|off|on|sync|doctor>');
+      console.error('usage: vizpane <hook|push|open|off|on|sync|renderer|doctor>');
       return 1;
   }
 }

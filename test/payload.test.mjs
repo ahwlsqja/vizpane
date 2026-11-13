@@ -34,7 +34,7 @@ test('non-object payload gives null', () => {
 // needs even when it never opens the viz-style skill, and stay well under the 10,000-char cap.
 test('SESSION_CONTEXT carries the diagram rules', () => {
   assert.ok(SESSION_CONTEXT.startsWith('vizpane is active'));
-  for (const needle of ['```mermaid', 'viz-style skill', 'viz skill', '%% viz: stream', '%% viz: box', '%% viz: phase', 'subgraph', 'autonumber', '한국 엔지니어', 'backpressure']) {
+  for (const needle of ['```mermaid', 'viz-style skill', 'viz skill', '%% viz: stream', '%% viz: box', '%% viz: phase', 'subgraph', 'autonumber', '한국 엔지니어', 'backpressure', 'inside the conversation', 'side pane', 'LR for up to six nodes']) {
     assert.ok(SESSION_CONTEXT.includes(needle), `missing: ${needle}`);
   }
   assert.ok(SESSION_CONTEXT.length < 2000, `too long: ${SESSION_CONTEXT.length}`);

@@ -14,7 +14,7 @@ Bug reports, feature requests and pull requests are welcome. For a larger change
 node --test
 ```
 
-Unit tests cover the store, hook, cmux handling (against a stub executable), fence extraction and the viewer logic in `viz-core.js`. They run without cmux.
+Unit tests cover the store, hook, cmux handling (against a stub executable), fence extraction, the viewer logic in `viz-core.js`, the inline mod's pure logic (`claude/inline-core.mjs`) and the renderer build logic (with an injected build, so no test compiles Swift). They run without cmux.
 
 ```sh
 node scripts/e2e-cmux.mjs
@@ -27,6 +27,7 @@ The end-to-end script drives a real viewer. It must run inside a cmux terminal (
 | Command | Purpose |
 |---|---|
 | `node scripts/vendor.mjs` | Reinstalls the pinned versions of Mermaid, marked and DOMPurify into a temporary directory and copies the bundles and licence files to `plugins/vizpane/viewer/vendor`. Needs `npm` and network access. When you change a version, change it in the script too. |
+| `node scripts/check-inline.mjs` | Builds the inline renderer into a temporary directory and draws the three examples of the `viz-style` skill to PNG files, printing each size, and checks that the renderer sends no network request. macOS only; needs `swiftc` and a login session. Run it when you change `inline/`. |
 | `node scripts/check-codex-terminal.mjs` | Builds the Codex TUI's Mermaid text renderer from the installed Codex version and checks that every Mermaid example in the `viz-style` skill is accepted. Needs `gh`, `cargo` and `codex`. Options: `--width <columns>`, `--tag <tag>`, and file paths. |
 
 ## Versions

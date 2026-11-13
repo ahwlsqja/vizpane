@@ -1,10 +1,15 @@
 # vizpane
 
-**Claude Code와 Codex의 답변에 든 Mermaid 도식을, cmux 옆 화면에 그림으로 보여 줍니다.**
+**Claude Code와 Codex의 답변에 든 Mermaid 도식을 그림으로 보여 줍니다. Claude Code는 대화 안에 그리고, Codex는 cmux 옆 화면에 보여 줍니다.**
 
 [English](README.md)
 
-터미널에서 쓰는 코딩 에이전트는 Mermaid를 코드 그대로 출력합니다. vizpane은 에이전트의 turn이 끝나는 순간 같은 답변을 [cmux](https://cmux.com) 안의 browser 화면에 도식이 그려진 상태로 보여 줍니다. 서버도 daemon도 없고, 에이전트가 따로 도구를 호출할 필요도 없습니다.
+터미널에서 쓰는 코딩 에이전트는 Mermaid를 코드 그대로 출력합니다. vizpane은 그 도식을 그림으로 그려 줍니다.
+
+- **Claude Code:** 답변 바로 아래, 대화 안에 그림이 나타나고 코드 블록은 한 줄로 접힙니다. Claude Code mod를 쓰며, cmux 같은 Ghostty 계열 터미널과 kitty에서 동작합니다.
+- **Codex:** turn이 끝나는 순간 같은 답변을 [cmux](https://cmux.com) 안의 browser 화면에 도식이 그려진 상태로 보여 줍니다. Codex에는 대화 안에 그림을 넣는 확장 지점이 없습니다.
+
+서버도 daemon도 없고, 에이전트가 따로 도구를 호출할 필요도 없습니다.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/sequence-dark.png">
@@ -15,9 +20,9 @@
 
 | | |
 |---|---|
-| **자동 표시** | 답변에 ` ```mermaid ` 블록이 있으면 turn이 끝날 때 화면에 올라옵니다. 도식이 없는 답변은 올라오지 않고, 요청하면 올릴 수 있습니다. |
+| **자동 표시** | Claude Code는 ` ```mermaid ` 블록을 답변 아래에 그립니다. Codex는 이런 블록이 있는 답변을 turn이 끝날 때 화면에 올립니다. 도식이 없는 답변은 올라오지 않고, 요청하면 화면에 올릴 수 있습니다. |
 | **단순한 Mermaid에서 풍부한 그림** | 에이전트는 Mermaid의 작고 안전한 일부만 쓰고, 모양·색·묶음은 `%% viz:` 주석 줄에 적습니다. 화면이 이를 원통(저장소), queue(topic), 계층 상자, 구간 색칠, 단계 번호로 바꿔 그립니다. |
-| **두 에이전트가 한 타임라인** | 같은 cmux workspace의 Claude Code와 Codex 답변이 한 화면에 badge로 구분되어 쌓입니다. |
+| **화면은 한 타임라인** | Codex 답변과 `push`로 보낸 내용이 cmux workspace마다 하나의 화면에 badge로 구분되어 쌓입니다. |
 | **답변을 신뢰하지 않음** | 답변에는 웹에서 가져온 글이 섞일 수 있습니다. HTML을 걸러 내고, script는 실행하지 않으며, 원격 이미지와 stylesheet를 제거합니다. |
 | **잘 깨지지 않음** | 문법 오류가 있는 도식은 오류 문구와 원본을 보여 주고, 답변의 나머지는 그대로 그립니다. 화면을 닫아도 다음 도식 때 이전 답변과 함께 다시 열립니다. |
 | **로컬 전용** | 파일은 `~/.local/state/vizpane` 아래에 본인만 읽을 수 있게 저장됩니다. 네트워크 요청이 없습니다. |
@@ -50,7 +55,7 @@ flowchart TB
 ```
 ````
 
-화면에는 이렇게 나옵니다.
+그림은 이렇게 나옵니다. Codex에서는 옆 화면에, Claude Code에서는 답변 아래에 그려집니다.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/flow-dark.png">
@@ -73,6 +78,7 @@ flowchart TB
 - macOS와 [cmux](https://cmux.com) (0.64에서 확인)
 - Node.js 20 이상
 - Claude Code 또는 Codex CLI
+- Claude Code 대화 안에 그림을 그리려면 Claude Code 2.1.290 이상, 이미지를 표시하는 터미널(Ghostty, cmux, kitty), Xcode Command Line Tools(`xcode-select --install`)가 필요합니다. 도구에 든 `swiftc`가 renderer를 한 번, 몇 초 안에 빌드합니다. 없으면 Claude Code는 예전처럼 동작하고 도식은 옆 화면으로 갑니다.
 
 ## 설치
 
@@ -83,7 +89,7 @@ claude plugin marketplace add ahwlsqja/vizpane
 claude plugin install vizpane@vizpane
 ```
 
-cmux 안에서 새 세션을 시작합니다. 세션이 시작될 때 plugin이 에이전트에게 도식 작성 규칙을 알려 줍니다.
+cmux 안에서 새 세션을 시작합니다. 세션이 시작될 때 plugin이 에이전트에게 도식 작성 규칙을 알려 주고, 설치나 업데이트 뒤 첫 시작에서 renderer를 빌드합니다.
 
 ### Codex
 
@@ -101,9 +107,9 @@ Codex 세션을 새로 시작하거나, 기존 세션을 `codex resume <session 
 
 ## 사용
 
-에이전트에게 도식으로 설명해 달라고 하면 됩니다. turn이 끝나면 터미널 오른쪽에 화면이 열리고, 키보드 focus는 옮겨 가지 않습니다.
+에이전트에게 도식으로 설명해 달라고 하면 됩니다. Claude Code에서는 답변 아래에 그림이 나타납니다. Codex에서는 turn이 끝나면 터미널 오른쪽에 화면이 열리고, 키보드 focus는 옮겨 가지 않습니다.
 
-그 밖의 일은 명령 하나로 합니다. 에이전트에게 "화면에 올려 줘"라고 하면 함께 설치되는 `viz` skill이 실행하고, 직접 실행해도 됩니다.
+화면과 아래 명령은 두 에이전트 모두에서 쓸 수 있습니다. 그 밖의 일은 명령 하나로 합니다. 에이전트에게 "화면에 올려 줘"라고 하면 함께 설치되는 `viz` skill이 실행하고, 직접 실행해도 됩니다.
 
 ```bash
 node ~/.local/state/vizpane/bin/vizpane.mjs <명령>
@@ -126,6 +132,11 @@ node ~/.local/state/vizpane/bin/vizpane.mjs <명령>
 |---|---|
 | `VIZPANE_THEME=light` 또는 `dark` | 시스템 설정 대신 테마 고정 |
 | `VIZPANE_HOME=/path` | `~/.local/state/vizpane` 대신 다른 곳에 저장 |
+| `VIZPANE_INLINE=off` | Claude Code 대화 안에 그림을 그리지 않음. 답변은 다시 옆 화면으로 감 |
+
+## figures plugin과 함께 쓰기
+
+LaTeX 수식, D2, Graphviz, SVG는 [natsukium/claude-code-figures-plugin](https://github.com/natsukium/claude-code-figures-plugin)을 설치해 그립니다. 이 plugin의 `renderers` 옵션을 `mmdc`로 설정하면 Mermaid는 vizpane에 맡깁니다. 설정하지 않으면 두 plugin이 같은 도식을 각각 그립니다.
 
 ## 동작 방식
 
@@ -143,16 +154,20 @@ node ~/.local/state/vizpane/bin/vizpane.mjs <명령>
 +---------------------------+------ no ----> store only
 ```
 
+이 그림은 Codex와 `push`의 경로입니다. Claude Code에서는 mod가 그림을 그리고 Stop hook은 답변을 저장만 합니다. [docs/how-it-works.md](docs/how-it-works.md#inline-pictures-in-claude-code)(영문)를 참고하세요.
+
 hook은 끝난 답변을 분리된 프로세스에 넘기고 바로 끝나므로 turn을 늦추거나 실패시키지 않습니다. 넘겨받은 프로세스가 답변을 저장하고, 도식이 있으면 열려 있는 화면에 불러오게 합니다. 자세한 내용은 [docs/how-it-works.md](docs/how-it-works.md)(영문)에 있습니다.
 
 ## 보안
 
-답변은 신뢰할 수 없는 입력으로 다룹니다. 화면은 DOMPurify로 HTML을 거르고, Mermaid를 strict 보안 수준으로 돌리고, 그려진 SVG에서 원격 이미지와 외부 참조를 제거하며, 링크를 따라가지 않습니다. 저장 파일은 소유자만 읽을 수 있습니다. 위협 모델과 신고 방법은 [SECURITY.md](SECURITY.md)에 있습니다.
+답변은 신뢰할 수 없는 입력으로 다룹니다. inline renderer는 네트워크 로드를 막은 offscreen WebKit view에서 도식을 그립니다. 화면은 DOMPurify로 HTML을 거르고, Mermaid를 strict 보안 수준으로 돌리고, 그려진 SVG에서 원격 이미지와 외부 참조를 제거하며, 링크를 따라가지 않습니다. 저장 파일은 소유자만 읽을 수 있습니다. 위협 모델과 신고 방법은 [SECURITY.md](SECURITY.md)에 있습니다.
 
 ## 한계
 
-- **cmux 전용입니다.** 화면이 cmux browser 표면입니다. cmux 밖에서는 저장만 하고 아무것도 열지 않습니다.
-- **그림은 대화 안이 아니라 옆에 뜹니다.** Claude Code와 Codex가 터미널 화면을 직접 그리기 때문에 밖에서 그 안에 그림을 넣을 수 없습니다.
+- **옆 화면은 cmux가 필요합니다.** 화면이 cmux browser 표면입니다. cmux 밖에서는 Codex 답변을 저장만 하고 아무것도 열지 않습니다.
+- **대화 안의 그림은 Claude Code에서만 됩니다.** Claude Code에는 대화 안에 이미지를 그리는 확장 지점이 있습니다. Codex에는 없어서 그림이 옆 화면에 남습니다.
+- **대화 안의 그림은 macOS, `swiftc`, 이미지를 표시하는 터미널이 필요합니다.** 없으면 Claude Code는 코드 블록을 그대로 보여 주고 답변은 옆 화면으로 갑니다.
+- **대화 안의 그림은 도식만 지원합니다.** renderer는 Mermaid만 그립니다.
 - **cmux workspace마다 화면은 하나입니다.** 그 workspace의 모든 에이전트가 같이 씁니다.
 - **Mermaid 버전은 고정입니다.** `plugins/vizpane/viewer/vendor/VERSIONS.json`에 적힌 버전을 씁니다.
 - **에이전트가 도식 규칙을 항상 지키지는 않습니다.** 규칙은 지시문입니다. 규칙을 어긴 도식도 일반 Mermaid로는 그려집니다.

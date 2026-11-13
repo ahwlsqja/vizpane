@@ -1,13 +1,13 @@
 ---
 name: viz-style
-description: Rules for writing Mermaid diagrams in an answer, plus terminology rules for Korean answers. Use when explaining architecture, data flow, call order, state transitions or table structure, where there are three or more relationships, branches, boundaries or ordered steps. In a cmux workspace with vizpane enabled, a mermaid code block is rendered as a picture in the pane next to the terminal. Do not use for one-step answers or when the user asks for text only.
+description: Rules for writing Mermaid diagrams in an answer, plus terminology rules for Korean answers. Use when explaining architecture, data flow, call order, state transitions or table structure, where there are three or more relationships, branches, boundaries or ordered steps. With vizpane enabled, a mermaid code block is rendered as a picture: inside the conversation in Claude Code, in the side pane in Codex. Do not use for one-step answers or when the user asks for text only.
 ---
 
-# viz-style: diagrams that render in the side pane
+# viz-style: diagrams that render as pictures
 
-A ` ```mermaid ` block in your answer is rendered as a picture in the side pane (vizpane). The terminal shows the code as text, so write the answer so that it still reads well if the reader skips the diagram.
+A ` ```mermaid ` block in your answer is rendered as a picture by vizpane. In Claude Code the picture is drawn inside the conversation, under your answer, and the code block is folded to one line. In Codex it appears in the side pane next to the terminal, and the terminal shows the code as text. Write the answer so that it still reads well if the reader skips the diagram.
 
-**Write the diagram body in plain syntax, and put shapes, colours and grouping in `%% viz:` comment lines.** The side pane reads the comments and applies them to the picture.
+**Write the diagram body in plain syntax, and put shapes, colours and grouping in `%% viz:` comment lines.** vizpane reads the comments and applies them to the picture.
 
 - Plain syntax produces far fewer Mermaid syntax errors.
 - The Codex terminal can also draw this plain syntax as a text diagram when it fits the terminal width. Do not cut content to make it fit.
@@ -24,7 +24,7 @@ This skill only governs presentation. Project rules (`AGENTS.md`, `CLAUDE.md`) a
 
 1. One-line conclusion
 2. One diagram. One diagram tells one story; two stories need two diagrams.
-3. Reading order: 3 to 7 lines. For a sequence diagram the side pane numbers the messages in order, so refer to those step numbers.
+3. Reading order: 3 to 7 lines. For a sequence diagram vizpane numbers the messages in order, so refer to those step numbers.
 4. A table when it helps (comparison, behaviour on failure, list of keys)
 
 ## Which diagram
@@ -40,7 +40,7 @@ This skill only governs presentation. Project rules (`AGENTS.md`, `CLAUDE.md`) a
 
 Use only the following.
 
-- Direction: `flowchart TB` by default. `LR` only for four nodes or fewer.
+- Direction: `flowchart LR` for up to six nodes in a line (a picture in a wide terminal reads better short and wide). `flowchart TB` for longer or branching flows.
 - Nodes: `id["label"]` box, `id{"label"}` decision, `id(["label"])` start or end. An id starts with a letter and contains letters, digits and underscores.
 - Arrows: `-->` normal path, `-.->` failure, asynchronous or secondary path. Labels: `-->|"label"|`.
 - Keep labels short. Break a long label with `<br/>`.
@@ -52,7 +52,7 @@ Do not use (the comments below replace what you need): `subgraph`, `==>`, `@{ sh
 
 Put them above the node declarations. One line can list several ids.
 
-| Comment | Meaning | In the side pane |
+| Comment | Meaning | In the picture |
 |---|---|---|
 | `%% viz: stream <id…>` | Kafka topic, queue | horizontal cylinder, green |
 | `%% viz: store <id…>` | database, state store | cylinder, blue |
@@ -80,13 +80,13 @@ Do not use (the comments below replace what you need): `autonumber`, `box`, `rec
 
 ### Size
 
-- At most five participants. Split the diagram if you need more; the side pane is narrow and text gets small.
+- At most five participants. Split the diagram if you need more; a wide diagram shrinks and its text gets small.
 - Keep each message to one short line. Longer explanations go into the reading order or a table.
 - Keep participant labels short: `JobManager`, not `JobManager (Checkpoint Coordinator)`.
 
 ### sequenceDiagram comments
 
-| Comment | Meaning | In the side pane |
+| Comment | Meaning | In the picture |
 |---|---|---|
 | `%% viz: queue <id…>` | flowing data such as a Kafka topic | queue shape |
 | `%% viz: database <id…>` | database, table, store | cylinder shape |
@@ -97,7 +97,7 @@ Do not use (the comments below replace what you need): `autonumber`, `box`, `rec
 - Put the kind and `box` comments above the `participant` declarations.
 - Make the first line of a phase `Note over A,B: Phase 1 · name`.
 - Phases must not overlap, and must not cut through an `alt` or `loop` block.
-- The side pane adds step numbers automatically. Do not write `1.` yourself.
+- vizpane adds step numbers automatically. Do not write `1.` yourself.
 
 ## erDiagram, stateDiagram-v2
 
@@ -112,7 +112,7 @@ Write them plainly, without comments.
 - Do not use `end` as a node id.
 - A comment is one whole line starting with `%% viz:`. Do not append it to another line.
 - `<id…>` are the declared identifiers, not labels. For `participant K as Kafka` write `%% viz: queue K`.
-- Do not write colours. The side pane applies colours that fit its light or dark theme.
+- Do not write colours. vizpane applies colours that fit its light or dark theme.
 
 ## 한국어로 답할 때: 용어와 문장
 
