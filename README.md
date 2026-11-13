@@ -99,6 +99,8 @@ Then do two things once:
 1. Open `/hooks` in Codex and approve the vizpane `Stop` hook.
 2. Paste the diagram rules into `~/.codex/AGENTS.md`. The block is in [docs/codex-setup.md](docs/codex-setup.md).
 
+Start a new Codex session, or continue an existing one with `codex resume <session id>`. A session that was already running when you installed vizpane does not have the hook; see [Sessions that were already running](docs/codex-setup.md#sessions-that-were-already-running).
+
 ## Use
 
 Ask the agent to explain something with a diagram. When the turn ends, the pane opens to the right of the terminal without taking keyboard focus.
@@ -113,6 +115,7 @@ node ~/.local/state/vizpane/bin/vizpane.mjs <command>
 |---|---|
 | `push --last` | Show the last answer, with or without a diagram |
 | `push --file notes.md` | Show a Markdown file |
+| `push --stdin` | Show Markdown piped in on standard input |
 | `open` | Open the pane |
 | `off` / `on` | Turn automatic display off or on for this cmux workspace |
 | `doctor` | Check the installation |

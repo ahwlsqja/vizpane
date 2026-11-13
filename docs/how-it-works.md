@@ -100,6 +100,7 @@ Commands, run as `node ~/.local/state/vizpane/bin/vizpane.mjs <command>`:
 |---|---|
 | `push --last [--session <id>] [--title <t>]` | Push the newest stored answer of this workspace, or of one session |
 | `push --file <path.md> [--title <t>] [--agent <name>]` | Push a Markdown file |
+| `push --stdin [--title <t>] [--agent <name>]` | Push Markdown read from standard input |
 | `open` | Open the viewer if it is not open |
 | `off` / `on` | Turn automatic pushing off or on for this workspace. `push` still works while off |
 | `sync` | Copy the app files into the state root now |

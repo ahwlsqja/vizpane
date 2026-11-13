@@ -65,8 +65,9 @@ async function work(jobFile) {
 }
 
 async function push(values) {
-  if (values.file) {
-    const markdown = readFileSync(values.file, 'utf8');
+  if (values.file || values.stdin) {
+    const markdown = values.file ? readFileSync(values.file, 'utf8') : await readStdin();
+    if (!markdown.trim()) throw new Error(`push: no input${values.file ? ` in ${values.file}` : ' on stdin'}`);
     return publish({ agent: values.agent || 'manual', session: 'manual', cwd: process.cwd(), markdown, title: values.title });
   }
   if (values.last) {
@@ -74,7 +75,7 @@ async function push(values) {
     if (!last) throw new Error('저장된 직전 답변이 없습니다');
     return publish({ ...last, title: values.title });
   }
-  throw new Error('usage: vizpane push --last [--session <id>] | --file <path.md> [--title <t>] [--agent <name>]');
+  throw new Error('usage: vizpane push --last [--session <id>] | --file <path.md> | --stdin  [--title <t>] [--agent <name>]');
 }
 
 async function doctor() {
@@ -115,7 +116,7 @@ async function main() {
     strict: false,
     options: {
       agent: { type: 'string' }, event: { type: 'string' }, last: { type: 'boolean' },
-      session: { type: 'string' }, file: { type: 'string' }, title: { type: 'string' },
+      session: { type: 'string' }, file: { type: 'string' }, title: { type: 'string' }, stdin: { type: 'boolean' },
     },
   });
   switch (cmd) {

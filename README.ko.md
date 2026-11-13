@@ -97,6 +97,8 @@ codex plugin add vizpane@vizpane
 1. Codex에서 `/hooks`를 열어 vizpane의 `Stop` hook을 승인합니다.
 2. 도식 작성 규칙을 `~/.codex/AGENTS.md`에 붙여 넣습니다. 붙여 넣을 내용은 [docs/codex-setup.md](docs/codex-setup.md)에 있습니다.
 
+Codex 세션을 새로 시작하거나, 기존 세션을 `codex resume <session id>`로 이어서 엽니다. vizpane을 설치할 때 이미 떠 있던 세션에는 hook이 없습니다. [이미 떠 있던 세션](docs/codex-setup.md#sessions-that-were-already-running)을 참고하세요.
+
 ## 사용
 
 에이전트에게 도식으로 설명해 달라고 하면 됩니다. turn이 끝나면 터미널 오른쪽에 화면이 열리고, 키보드 focus는 옮겨 가지 않습니다.
@@ -111,6 +113,7 @@ node ~/.local/state/vizpane/bin/vizpane.mjs <명령>
 |---|---|
 | `push --last` | 직전 답변을 도식 유무와 상관없이 올리기 |
 | `push --file notes.md` | 마크다운 파일 올리기 |
+| `push --stdin` | 표준 입력으로 받은 마크다운 올리기 |
 | `open` | 화면 열기 |
 | `off` / `on` | 이 cmux workspace의 자동 표시 끄기·켜기 |
 | `doctor` | 설치 상태 점검 |

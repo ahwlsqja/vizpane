@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-11-13
+
+### Added
+
+- `push --stdin` shows Markdown piped in on standard input, so an agent can show an answer with one command.
+- Guidance for sessions that were already running when vizpane was installed: the Codex setup guide, the `AGENTS.md` block and the `viz` skill now explain that such a session has no hook, how to restart it, and how to show answers by hand until then.
+
+### Changed
+
+- `push --file` with an empty file now fails with an error instead of adding an empty card.
+
 ## [0.2.0] - 2026-11-13
 
 First public release.

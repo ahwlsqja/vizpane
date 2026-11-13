@@ -115,6 +115,22 @@ test('push --file and push --last', async () => {
   assert.ok(existsSync(join(home, 'data/ws1/turns/turn-0002.js')));
 });
 
+test('push --stdin publishes piped markdown, with or without a diagram', () => {
+  const r = run(['push', '--stdin', '--agent', 'codex', '--title', 'Piped'], NO_FENCE);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^(opened|pushed) 0001\n$/);
+  const turn = readFileSync(turn1(), 'utf8');
+  assert.ok(turn.includes('"agent":"codex"') && turn.includes('"title":"Piped"') && turn.includes(NO_FENCE), turn);
+  assert.ok(stub.calls().some((c) => c.startsWith('new-pane ')), 'the viewer was opened');
+});
+
+test('push --stdin with empty input fails without writing a turn', () => {
+  const r = run(['push', '--stdin'], '  \n');
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /no input/);
+  assert.equal(existsSync(turn1()), false);
+});
+
 test('open, sync and doctor', () => {
   assert.equal(run(['open']).status, 0);
   assert.match(stub.calls().join('\n'), /new-pane/);

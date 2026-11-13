@@ -36,6 +36,8 @@ Write the diagram body in the plain subset. For flowchart use the TB direction: 
 Write shape, colour and grouping as comment lines above the node declarations. flowchart: %% viz: stream|store|table|proc|decide|fail|ok|ext <id...> and %% viz: bronze|silver|gold|group <id...> as Title. sequenceDiagram: %% viz: queue|database|control <id...>, %% viz: box <id...> as Title, and %% viz: phase ... %% viz: end around a phase. In <id...> write the declared identifier, not the label (for participant K as Kafka, write K).
 
 An answer without a diagram is not shown automatically. If the user asks to show the previous answer in the pane, use the viz skill.
+
+If the user says a diagram did not appear in the pane, this session has no vizpane hook (it was started before vizpane was installed). Until the session is restarted, show each diagram answer yourself by piping the same Markdown to: node ~/.local/state/vizpane/bin/vizpane.mjs push --stdin --agent codex --title "<short title>"
 ````
 
 The block is the same rule set that the Claude Code session context carries, without the terminology paragraph.
@@ -57,3 +59,17 @@ node ~/.local/state/vizpane/bin/vizpane.mjs doctor
 ```
 
 and read `~/.local/state/vizpane/vizpane.log`.
+
+## Sessions that were already running
+
+Codex loads plugin hooks when a session starts. A session that was running before you installed vizpane has no Stop hook, so its answers never reach the pane and nothing is written to the log.
+
+Restart the session to fix it. `codex resume <session id>` continues the same conversation with the hook loaded.
+
+If you cannot restart yet, the agent can show an answer itself. The AGENTS.md block above tells it how:
+
+```sh
+node ~/.local/state/vizpane/bin/vizpane.mjs push --stdin --agent codex --title "Checkout flow" <<'MD'
+...the answer, including its mermaid block...
+MD
+```
