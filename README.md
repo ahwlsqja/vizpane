@@ -138,7 +138,11 @@ In the pane, click a diagram to enlarge it, use **Source** to see the Mermaid te
 
 ## Use with the figures plugin
 
-For LaTeX math, D2, Graphviz and SVG, install [natsukium/claude-code-figures-plugin](https://github.com/natsukium/claude-code-figures-plugin). Set its `renderers` option to `mmdc` so that it leaves Mermaid to vizpane; otherwise both plugins draw the same diagram.
+For LaTeX math, D2, Graphviz and SVG, install [natsukium/claude-code-figures-plugin](https://github.com/natsukium/claude-code-figures-plugin). Without a setting, figures draws Mermaid with its built-in renderer and both plugins draw the same diagram. Set its `renderers` option to `mmdc`: figures then uses only mermaid-cli for Mermaid, and while `mmdc` is not installed it skips Mermaid blocks and leaves them to vizpane.
+
+```bash
+echo '{"renderers":"mmdc"}' | claude plugin configure figures@figures --values-stdin
+```
 
 ## How it works
 

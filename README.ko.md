@@ -136,7 +136,11 @@ node ~/.local/state/vizpane/bin/vizpane.mjs <명령>
 
 ## figures plugin과 함께 쓰기
 
-LaTeX 수식, D2, Graphviz, SVG는 [natsukium/claude-code-figures-plugin](https://github.com/natsukium/claude-code-figures-plugin)을 설치해 그립니다. 이 plugin의 `renderers` 옵션을 `mmdc`로 설정하면 Mermaid는 vizpane에 맡깁니다. 설정하지 않으면 두 plugin이 같은 도식을 각각 그립니다.
+LaTeX 수식, D2, Graphviz, SVG는 [natsukium/claude-code-figures-plugin](https://github.com/natsukium/claude-code-figures-plugin)을 설치해 그립니다. 설정하지 않으면 figures가 내장 renderer로 Mermaid를 그려서 두 plugin이 같은 도식을 각각 그립니다. `renderers` 옵션을 `mmdc`로 두면 figures는 Mermaid에 mermaid-cli만 쓰고, `mmdc`가 설치돼 있지 않은 동안에는 Mermaid 블록을 건너뛰어 vizpane에 맡깁니다.
+
+```bash
+echo '{"renderers":"mmdc"}' | claude plugin configure figures@figures --values-stdin
+```
 
 ## 동작 방식
 
