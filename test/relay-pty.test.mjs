@@ -1412,7 +1412,7 @@ for (const variantName of ['stub', 'filter']) {
       });
     });
 
-    // P5g (decision D7, pinned as it is today). Ctrl+Z, bg, fg with a program that follows Codex 0.169.0's order on
+    // P5g (a known difference, pinned as it is today). Ctrl+Z, bg, fg with a program that follows Codex 0.169.0's order on
     // resume: its screen modes are written to stdout first, then raw mode is set with tcsetattr, whose interruption it
     // does not retry. Without `stty tostop` the stock program's write passes in the background and its tcsetattr is
     // the first access that stops it, so after fg it is left cooked (macOS's default; Codex's own behaviour). With

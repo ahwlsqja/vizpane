@@ -18,7 +18,7 @@
 //   - without the relay no copy is ever cut and no frame sequence is ever broken;
 //   - a copy of up to 256 bytes is never cut. This is a measured result, not a proof: the relay writes when at most
 //     256 of the pane's 1,024 queue bytes are in use, which normally leaves room for 256 more, but a chunk of up to
-//     768 bytes can leave none, so the assertion is the measurement that no cut was ever seen up to 300 bytes;
+//     768 bytes can leave none, so the assertion is the measurement that no cut was ever seen up to 256 bytes (300 is printed, not asserted);
 //   - the relay never breaks one of its own sequences unless one of its writes was partial: a frame sequence of the
 //     stream can only have foreign bytes inside it when a relay write to the pane was cut short (the chunks end at
 //     parser-ground points).

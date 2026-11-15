@@ -45,7 +45,14 @@
  * Any failure before Codex has been forked ends in execv() of the real Codex,
  * so installing the relay can never make `codex` fail to start.
  *
- * Known differences from running Codex directly (all deliberate):
+ * Known differences from running Codex directly:
+ *   - Not deliberate: under `stty tostop`, after Ctrl+Z, bg and fg, Codex comes back without raw
+ *     mode. On resume Codex writes its screen modes to stdout, then calls tcsetattr and does not
+ *     retry it when interrupted. Stock Codex is stopped at the write by tostop, so its tcsetattr
+ *     later runs in the foreground; here stdout is the inner pty, not Codex's controlling
+ *     terminal, so Codex is stopped at the tcsetattr instead, as stock is without tostop. The
+ *     relay cannot fix that without racing Codex. test/relay-pty.test.mjs (P5g) pins it.
+ *   The rest are deliberate:
  *   - A relay write is whole unless a foreign write took the room (it waits for POLLOUT and
  *     writes at most 512 bytes that end at a safe cut point, up to 768 to reach the first one),
  *     so another writer normally lands between whole items. Inside a run with no cut point the relay
