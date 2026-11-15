@@ -1,5 +1,6 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -20,6 +21,8 @@ function fakePlugin(version, tag) {
   w('lib/store.mjs', `lib ${tag}`);
   w('inline/render.swift', `swift ${tag}`);
   w('inline/render.html', `page ${tag}`);
+  w('claude/inline-core.mjs', `core ${tag}`);
+  w('claude/register.tsx', `mod ${tag}`);
   w('skills/viz/SKILL.md', 'not copied');
 }
 const read = (rel) => readFileSync(join(home, rel), 'utf8');
@@ -41,6 +44,7 @@ test('copies to the state-root layout', () => {
   assert.equal(read('lib/store.mjs'), 'lib a');
   assert.equal(read('inline/render.swift'), 'swift a');
   assert.equal(read('inline/render.html'), 'page a');
+  assert.equal(read('claude/inline-core.mjs'), 'core a');
   assert.ok(!existsSync(join(home, 'skills')));
 });
 
@@ -79,4 +83,13 @@ test('no-op when the plugin root is the state root itself', () => {
 
 test('defaultPluginRoot points at the real plugin directory', () => {
   assert.ok(existsSync(join(defaultPluginRoot(), 'VERSION')));
+});
+
+test('the Codex inline module loads from the state root, where ../claude is a sibling of lib', () => {
+  assert.equal(syncApp(defaultPluginRoot(), { force: true }), true);
+  const r = spawnSync(process.execPath, ['--input-type=module', '-e',
+    `const m = await import(${JSON.stringify(join(home, 'lib/codex-inline.mjs'))}); console.log(typeof m.eligible, typeof m.buildMessage);`],
+  { encoding: 'utf8', env: { ...process.env, VIZPANE_HOME: home } });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim(), 'function function');
 });

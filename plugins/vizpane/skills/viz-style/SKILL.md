@@ -1,11 +1,11 @@
 ---
 name: viz-style
-description: Rules for writing Mermaid diagrams in an answer, plus terminology rules for Korean answers. Use when explaining architecture, data flow, call order, state transitions or table structure, where there are three or more relationships, branches, boundaries or ordered steps. With vizpane enabled, a mermaid code block is rendered as a picture: inside the conversation in Claude Code, in the side pane in Codex. Do not use for one-step answers or when the user asks for text only.
+description: Rules for writing Mermaid diagrams in an answer, plus terminology rules for Korean answers. Use when explaining architecture, data flow, call order, state transitions or table structure, where there are three or more relationships, branches, boundaries or ordered steps. With vizpane enabled, a mermaid code block is rendered as a picture: inside the conversation in Claude Code, and in Codex when the vizpane Codex relay is enabled, otherwise in the side pane. Do not use for one-step answers or when the user asks for text only.
 ---
 
 # viz-style: diagrams that render as pictures
 
-A ` ```mermaid ` block in your answer is rendered as a picture by vizpane. In Claude Code the picture is drawn inside the conversation, under your answer, and the code block is folded to one line. In Codex it appears in the side pane next to the terminal, and the terminal shows the code as text. Write the answer so that it still reads well if the reader skips the diagram.
+A ` ```mermaid ` block in your answer is rendered as a picture by vizpane. In Claude Code the picture is drawn inside the conversation, under your answer, and the code block is folded to one line. In Codex the code stays in the conversation as text, and the picture is drawn inside the conversation when the vizpane Codex relay is enabled, otherwise it appears in the side pane next to the terminal. Write the answer so that it still reads well if the reader skips the diagram.
 
 **Write the diagram body in plain syntax, and put shapes, colours and grouping in `%% viz:` comment lines.** vizpane reads the comments and applies them to the picture.
 

@@ -26,5 +26,5 @@ node ~/.local/state/vizpane/bin/vizpane.mjs <command>
 - If the user did not say what to do, run `push --last`.
 - After running a command, report the result in one line.
 - If `~/.local/state/vizpane/bin/vizpane.mjs` does not exist, vizpane has never run on this machine. Tell the user; do not work around it.
-- If the user says a diagram answer did not appear in the pane, this session has no vizpane hook (it was started before vizpane was installed). Show the answer by piping the same Markdown to `push --stdin`, add `--agent codex` or `--agent claude`, and tell the user that restarting the session restores automatic display.
+- If the user says a diagram answer did not appear in the pane, first check whether it was drawn inside the conversation instead (Codex with the vizpane relay turned on, Claude Code). If not, this session has no vizpane hook (it was started before vizpane was installed). Show the answer by piping the same Markdown to `push --stdin`, add `--agent codex` or `--agent claude`, and tell the user that restarting the session restores automatic display.
 - These commands open the pane only inside cmux. Outside cmux the answer is stored and nothing opens.

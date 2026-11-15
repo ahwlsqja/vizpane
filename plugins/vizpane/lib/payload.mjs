@@ -1,7 +1,7 @@
 // Injected into every Claude Code session that runs inside cmux. It carries the rules an agent needs
 // even if it never opens the viz-style skill. The Korean paragraph applies only to Korean answers.
 export const SESSION_CONTEXT = [
-  'vizpane is active: a ```mermaid code block in your answer is rendered as a picture. In Claude Code the picture is drawn inside the conversation, under your answer; in Codex it appears in the side pane next to the terminal.',
+  'vizpane is active: a ```mermaid code block in your answer is rendered as a picture. In Claude Code the picture is drawn inside the conversation, under your answer; in Codex it is drawn inside the conversation when the vizpane Codex relay is enabled, otherwise it appears in the side pane next to the terminal.',
   'When an explanation has three or more relationships, branches, boundaries or ordered steps, include one Mermaid diagram. Detailed rules and examples are in the viz-style skill.',
   'Write the diagram body in plain syntax only. flowchart (LR for up to six nodes in a line, TB for longer or branching flows): id["label"], id{"decision"}, id(["end"]), -->, -.->, -->|"label"|. ' +
     'sequenceDiagram: participant/actor ID as Label, ->>, -->>, --x, Note over, alt/else/loop/opt. ' +

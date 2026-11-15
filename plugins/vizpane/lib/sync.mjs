@@ -42,6 +42,8 @@ export function syncApp(pluginRoot = defaultPluginRoot(), { force = false } = {}
   copyTree(join(pluginRoot, 'bin'), join(root, 'bin'));
   copyTree(join(pluginRoot, 'lib'), join(root, 'lib'));
   copyTree(join(pluginRoot, 'inline'), join(root, 'inline'));
+  // lib/codex-inline.mjs imports ../claude/inline-core.mjs, from the plugin root and from here.
+  copyTree(join(pluginRoot, 'claude'), join(root, 'claude'));
   writeFileSync(join(root, 'VERSION'), `${version}\n`, { mode: 0o600 });
   return true;
 }

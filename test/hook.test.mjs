@@ -1,12 +1,13 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, existsSync, readdirSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, existsSync, readdirSync, readFileSync, mkdirSync, writeFileSync, chmodSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeStub } from './stub-cmux.mjs';
 import { SESSION_CONTEXT } from '../plugins/vizpane/lib/payload.mjs';
+import { makePng } from './helpers/png.mjs';
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), '../plugins/vizpane/bin/vizpane.mjs');
 const WITH_FENCE = 'Intro\n\n```mermaid\nsequenceDiagram\n  A->>B: hi\n```\n';
@@ -152,4 +153,139 @@ test('open, sync and doctor', () => {
   const d2 = run(['doctor'], '', noWs);
   assert.equal(d2.status, 1);
   assert.match(d2.stdout, /FAIL .*CMUX_WORKSPACE_ID/);
+});
+
+// Codex inside the vizpane relay: the hook draws the diagram in the conversation.
+const VERSION = readFileSync(new URL('../plugins/vizpane/VERSION', import.meta.url), 'utf8').trim();
+const STUB_RENDER = `#!${process.execPath}
+const fs = require('node:fs');
+const a = process.argv.slice(2);
+const mode = process.env.STUB_RENDER || 'ok';
+if (a[0] === '--cell') {
+  if (mode === 'nocell') { console.log('{"ok":false,"error":"terminal does not report pixel size"}'); process.exit(1); }
+  console.log('{"ok":true,"cellWidth":8,"cellAspect":2,"columns":150,"rows":50}');
+} else if (mode === 'fail') {
+  console.log('{"ok":false,"error":"script failed"}'); process.exit(1);
+} else if (mode === 'hang') {
+  setInterval(() => {}, 1000);
+} else {
+  fs.copyFileSync(process.env.STUB_PNG, a[2]);
+  console.log('{"ok":true,"width":800,"height":400}');
+}
+`;
+let sessionCount = 0;
+const sessionDirOf = (name = `s1-${++sessionCount}-0123456789abcdef`) => {
+  const d = join(dir, name);
+  mkdirSync(d, { mode: 0o700 });
+  chmodSync(d, 0o700);
+  writeFileSync(join(d, 'tui'), '');
+  return d;
+};
+// A state root with a stub renderer that counts as built, and an environment inside a relay.
+function inlineEnv(extra = {}) {
+  mkdirSync(join(home, 'bin'), { recursive: true });
+  const stubPath = join(home, 'bin/viz-render');
+  writeFileSync(stubPath, STUB_RENDER);
+  chmodSync(stubPath, 0o755);
+  writeFileSync(`${stubPath}.stamp`, `${VERSION}\n`);
+  const png = join(dir, 'fixture.png');
+  writeFileSync(png, makePng(8, 4));
+  const e = { ...env, VIZPANE_INLINE_DIR: sessionDirOf(), VIZPANE_TTY: '/dev/ttys999', STUB_PNG: png, ...extra };
+  for (const k of ['NO_COLOR', 'CODEX_THREAD_ID', 'VIZPANE_INLINE']) if (!(k in extra)) delete e[k];
+  return e;
+}
+const settle = (ms = 300) => new Promise((r) => setTimeout(r, ms));
+
+test('codex inside the relay: one JSON line with the picture, files published, side pane not used', async () => {
+  const e = inlineEnv();
+  const r = run(['hook', '--agent', 'codex'], payload(WITH_FENCE), e);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.split('\n').length, 2, 'one line');
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.continue, true);
+  assert.deepEqual(Object.keys(out), ['continue', 'systemMessage']);
+  const lines = out.systemMessage.split('\n');
+  assert.equal(lines[0], 'vizpane · 1 diagram');
+  assert.equal(lines[1], '1 · sequenceDiagram');
+  assert.ok(lines.slice(2).every((l) => l.startsWith('\u001b[38;2;') && l.endsWith('\u001b[39m')));
+  const names = readdirSync(e.VIZPANE_INLINE_DIR).sort();
+  assert.equal(names.filter((n) => /^[0-9a-f]{6}\.png$/.test(n)).length, 1);
+  assert.equal(names.filter((n) => /^[0-9a-f]{6}\.cr$/.test(n)).length, 1);
+  assert.ok(names.includes('emitted'));
+  await settle();
+  assert.equal(existsSync(turn1()), false, 'no side-pane turn');
+  assert.deepEqual(stub.calls(), []);
+  assert.equal(existsSync(join(home, 'jobs')), false, 'no worker job was queued');
+  assert.equal(JSON.parse(readFileSync(last(), 'utf8')).markdown, WITH_FENCE, 'push --last has the answer');
+  assert.equal(run(['push', '--last'], '', e).status, 0);
+  assert.ok(existsSync(turn1()));
+});
+
+test('codex without VIZPANE_INLINE_DIR keeps today\'s output byte for byte, even with a built renderer', async () => {
+  const e = inlineEnv();
+  delete e.VIZPANE_INLINE_DIR;
+  const r = run(['hook', '--agent', 'codex'], payload(WITH_FENCE), e);
+  assert.equal(r.stdout, '{"continue":true}\n');
+  assert.equal(r.stderr, '');
+  assert.ok(await waitFor(turn1()));
+});
+
+test('codex takes the side pane when any gate condition fails', async () => {
+  const cases = {
+    'NO_COLOR is set': { NO_COLOR: '1' },
+    'inside a Codex tool': { CODEX_THREAD_ID: 'thread' },
+    'inline is off': { VIZPANE_INLINE: 'off' },
+    'relay of another contract version': { VIZPANE_INLINE_DIR: sessionDirOf('s2-1-x') },
+    'no TUI marker': { VIZPANE_INLINE_DIR: (() => { const d = sessionDirOf('s1-9-notui'); rmSync(join(d, 'tui')); return d; })() },
+    'canary marked the session incompatible': { VIZPANE_INLINE_DIR: (() => { const d = sessionDirOf('s1-10-bad'); writeFileSync(join(d, 'incompatible'), ''); return d; })() },
+  };
+  for (const [why, extra] of Object.entries(cases)) {
+    const e = inlineEnv(extra);
+    const r = run(['hook', '--agent', 'codex'], payload(WITH_FENCE), e);
+    assert.equal(r.stdout, '{"continue":true}\n', why);
+    assert.ok(await waitFor(turn1()), why);
+    rmSync(join(home, 'data'), { recursive: true, force: true, maxRetries: 20, retryDelay: 50 });
+  }
+});
+
+test('codex with the pane switched off (vizpane off) publishes nothing and draws nothing', async () => {
+  const e = inlineEnv();
+  assert.equal(run(['off'], '', e).status, 0);
+  const r = run(['hook', '--agent', 'codex'], payload(WITH_FENCE), e);
+  assert.equal(r.stdout, '{"continue":true}\n');
+  await settle();
+  assert.equal(existsSync(turn1()), false);
+  assert.deepEqual(readdirSync(e.VIZPANE_INLINE_DIR), ['tui']);
+});
+
+test('codex answer without a diagram, and claude, ignore the relay entirely', async () => {
+  const e = inlineEnv();
+  const plain = run(['hook', '--agent', 'codex'], payload(NO_FENCE), e);
+  assert.equal(plain.stdout, '{"continue":true}\n');
+  const c = run(['hook', '--agent', 'claude'], payload(WITH_FENCE), e);
+  assert.equal(c.stdout, '');
+  assert.ok(await waitFor(last()), 'claude stores the answer as before');
+  assert.deepEqual(readdirSync(e.VIZPANE_INLINE_DIR), ['tui']);
+});
+
+test('codex falls back to the side pane when the renderer fails or cannot size the terminal', async () => {
+  for (const mode of ['fail', 'nocell']) {
+    const e = inlineEnv({ STUB_RENDER: mode });
+    const r = run(['hook', '--agent', 'codex'], payload(WITH_FENCE), e);
+    assert.equal(r.stdout, '{"continue":true}\n', mode);
+    assert.ok(await waitFor(turn1()), mode);
+    assert.deepEqual(readdirSync(e.VIZPANE_INLINE_DIR), ['tui'], mode);
+    rmSync(join(home, 'data'), { recursive: true, force: true, maxRetries: 20, retryDelay: 50 });
+  }
+});
+
+test('codex with a renderer that hangs answers within 7.5 s and uses the side pane', async () => {
+  const e = inlineEnv({ STUB_RENDER: 'hang' });
+  const started = Date.now();
+  const r = run(['hook', '--agent', 'codex'], payload(WITH_FENCE), { ...e });
+  const took = Date.now() - started;
+  assert.equal(r.stdout, '{"continue":true}\n');
+  assert.ok(took < 7500, `took ${took} ms`);
+  assert.ok(took >= 6000, `gave up too early: ${took} ms`);
+  assert.ok(await waitFor(turn1()));
 });

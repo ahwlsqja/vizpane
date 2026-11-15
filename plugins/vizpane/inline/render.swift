@@ -3,8 +3,9 @@
 //
 //   viz-render <render.html> <source.mmd> <out.png> <dark|light>
 //     prints {"ok":true,"width":<css px>,"height":<css px>} or {"ok":false,"error":"..."}
-//   viz-render --cell
-//     prints {"ok":true,"cellWidth":<points>,"cellAspect":<height/width>,"columns":N,"rows":N}
+//   viz-render --cell [tty-path]
+//     asks the terminal at tty-path (default: the nearest ancestor's) and prints
+//     {"ok":true,"cellWidth":<points>,"cellAspect":<height/width>,"columns":N,"rows":N}
 //     or {"ok":false,"error":"..."}
 import AppKit
 import Darwin
@@ -42,11 +43,14 @@ func controllingTTY() -> String? {
   return nil
 }
 
-func cellMode() -> Never {
-  guard let tty = controllingTTY() else { finish(failure("no controlling terminal"), 1) }
-  let fd = open("/dev/\(tty)", O_RDONLY | O_NONBLOCK)
+// A given path (the Codex hook passes the pane's terminal) is used as it is. It is opened only
+// to read the window size: read-only, without becoming a controlling terminal.
+func cellMode(_ given: String?) -> Never {
+  guard let path = given ?? controllingTTY().map({ "/dev/\($0)" }) else { finish(failure("no controlling terminal"), 1) }
+  let fd = open(path, O_RDONLY | O_NONBLOCK | O_NOCTTY)
   guard fd >= 0 else { finish(failure("cannot open terminal"), 1) }
   defer { close(fd) }
+  guard isatty(fd) == 1 else { finish(failure("not a terminal"), 1) }
   var size = winsize()
   guard ioctl(fd, TIOCGWINSZ, &size) == 0 else { finish(failure("cannot read terminal size"), 1) }
   guard size.ws_col > 0, size.ws_row > 0, size.ws_xpixel > 0, size.ws_ypixel > 0 else {
@@ -165,9 +169,9 @@ final class Renderer: NSObject, WKNavigationDelegate {
 }
 
 let args = CommandLine.arguments
-if args.count == 2 && args[1] == "--cell" { cellMode() }
+if args.count >= 2 && args.count <= 3 && args[1] == "--cell" { cellMode(args.count == 3 ? args[2] : nil) }
 guard args.count == 5 else {
-  finish(failure("usage: viz-render <render.html> <source.mmd> <out.png> <dark|light> | viz-render --cell"), 2)
+  finish(failure("usage: viz-render <render.html> <source.mmd> <out.png> <dark|light> | viz-render --cell [tty-path]"), 2)
 }
 guard let source = try? String(contentsOfFile: args[2], encoding: .utf8) else { finish(failure("cannot read source"), 1) }
 
