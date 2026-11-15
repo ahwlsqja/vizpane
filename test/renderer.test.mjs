@@ -343,7 +343,7 @@ test('ccBuild compiles a trivial program into an executable', { skip: !hasCc && 
   assert.equal(spawnSync(out).status, 0);
 });
 
-test('ccBuild compiles the real relay.c into an executable', { skip: !hasCc && 'cc is not installed' }, () => {
+test('ccBuild compiles the real relay.c into an executable', { skip: process.platform !== 'darwin' ? 'the relay is built on macOS only (it includes libproc.h)' : !hasCc && 'cc is not installed' }, () => {
   const src = fileURLToPath(new URL('../plugins/vizpane/inline/relay.c', import.meta.url));
   const out = join(dir, 'relay-out');
   const r = ccBuild(src, out);
