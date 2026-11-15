@@ -50,24 +50,36 @@ test('fitCells: columns are capped by the viewport (less 4) and by 120', () => {
   assert.equal(fitCells(2000, 200, { columns: 300, rows: 40 }, CELL).columns, 120);
 });
 
-test('fitCells: rows are capped at 30 and columns follow when scale stays legible', () => {
-  // 600 x 1200 px: 75 columns would need 75 * 2 / 2 = 75 rows; capped to 30, so 30 columns.
-  const r = fitCells(600, 1200, { columns: 100, rows: 30 }, CELL);
+test('fitCells: a picture that stays legible within 30 rows is capped at 30 rows', () => {
+  // 600 x 600 px: 75 columns would need 38 rows; capped to 30 rows, 60 columns, scale 0.8.
+  const r = fitCells(600, 600, { columns: 100, rows: 40 }, CELL);
   assert.equal(r.rows, 30);
-  assert.equal(r.columns, 30);
-  assert.equal(r.scale, 0.4);
+  assert.equal(r.columns, 60);
+  assert.equal(r.scale, 0.8);
 });
 
-test('fitCells: a picture shrunk under 0.6 grows to the viewport height less 6 rows', () => {
+test('fitCells: a tall picture grows past 30 rows only as far as scale 0.8 needs', () => {
+  // 600 x 1200 px: within 30 rows it would be at scale 0.4; at scale 0.8 it needs 60 rows.
   const r = fitCells(600, 1200, { columns: 100, rows: 60 }, CELL);
+  assert.equal(r.rows, 60);
+  assert.equal(r.columns, 60);
+  assert.equal(r.scale, 0.8);
+});
+
+test('fitCells: a tall picture is at most two terminal heights (less 6 rows)', () => {
+  // On a 30-row terminal the same picture may take 54 rows, so it ends at scale 0.72.
+  const r = fitCells(600, 1200, { columns: 100, rows: 30 }, CELL);
   assert.equal(r.rows, 54);
   assert.equal(r.columns, 54);
-  assert.ok(r.scale >= 0.6 && r.scale < 1);
+  assert.equal(r.scale, 0.72);
+  // A very tall one stops at the same limit.
+  assert.equal(fitCells(300, 6000, { columns: 100, rows: 40 }, CELL).rows, 74);
 });
 
-test('fitCells: a short viewport does not raise the cap', () => {
-  const r = fitCells(600, 1200, { columns: 100, rows: 36 }, CELL);
-  assert.equal(r.rows, 30);
+test('fitCells: a picture limited by the terminal width does not grow taller', () => {
+  // 2000 x 600 px on 100 columns: 96 columns, 14 rows, scale 0.384; more rows cannot help.
+  const r = fitCells(2000, 600, { columns: 100, rows: 40 }, CELL);
+  assert.deepEqual({ columns: r.columns, rows: r.rows }, { columns: 96, rows: 14 });
 });
 
 test('fitCells: results are clamped to 1..255', () => {

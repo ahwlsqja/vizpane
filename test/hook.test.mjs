@@ -124,6 +124,13 @@ test('push --stdin publishes piped markdown, with or without a diagram', () => {
   assert.ok(stub.calls().some((c) => c.startsWith('new-pane ')), 'the viewer was opened');
 });
 
+test('push --zoom asks the viewer to open the diagram enlarged', () => {
+  const r = run(['push', '--stdin', '--zoom', '--agent', 'claude', '--title', 'diagram 1'], '```mermaid\nflowchart LR\n  A --> B\n```\n');
+  assert.equal(r.status, 0, r.stderr);
+  const turn = readFileSync(turn1(), 'utf8');
+  assert.ok(turn.includes('"zoom":true') && turn.includes('"title":"diagram 1"'), turn);
+});
+
 test('push --stdin with empty input fails without writing a turn', () => {
   const r = run(['push', '--stdin'], '  \n');
   assert.equal(r.status, 1);

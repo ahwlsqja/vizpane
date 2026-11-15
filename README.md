@@ -109,7 +109,7 @@ Start a new Codex session, or continue an existing one with `codex resume <sessi
 
 ## Use
 
-Ask the agent to explain something with a diagram. In Claude Code the picture appears under the answer. In Codex the pane opens to the right of the terminal when the turn ends, without taking keyboard focus.
+Ask the agent to explain something with a diagram. In Claude Code the picture appears under the answer; click **Enlarge** next to it to open the diagram enlarged in the side pane. In Codex the pane opens to the right of the terminal when the turn ends, without taking keyboard focus.
 
 The pane and these commands work for both agents. Everything else goes through one command. Ask the agent ("show that in the pane") and the bundled `viz` skill runs it, or run it yourself:
 
@@ -122,6 +122,7 @@ node ~/.local/state/vizpane/bin/vizpane.mjs <command>
 | `push --last` | Show the last answer, with or without a diagram |
 | `push --file notes.md` | Show a Markdown file |
 | `push --stdin` | Show Markdown piped in on standard input |
+| `push ... --zoom` | Also open the first diagram enlarged |
 | `open` | Open the pane |
 | `off` / `on` | Turn automatic display off or on for this cmux workspace |
 | `doctor` | Check the installation |

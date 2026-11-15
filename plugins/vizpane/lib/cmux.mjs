@@ -62,14 +62,14 @@ export async function openViewer(ws, cmuxWs = process.env.CMUX_WORKSPACE_ID) {
   return 'opened';
 }
 
-export async function publish({ agent, session, cwd, markdown, title }, { pluginRoot = defaultPluginRoot(), now } = {}) {
+export async function publish({ agent, session, cwd, markdown, title, zoom }, { pluginRoot = defaultPluginRoot(), now } = {}) {
   const ws = wsId();
   try {
     syncApp(pluginRoot);
   } catch (e) {
     log(`error sync: ${e.message}`);
   }
-  const { id, rel } = await addTurn(ws, { agent, session, cwd, markdown, title: title || titleOf(markdown) }, now);
+  const { id, rel } = await addTurn(ws, { agent, session, cwd, markdown, title: title || titleOf(markdown), zoom }, now);
   const cmuxWs = process.env.CMUX_WORKSPACE_ID;
   let action = 'stored-only';
   if (!cmuxWs) {

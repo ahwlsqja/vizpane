@@ -81,7 +81,7 @@ const turnNumbers = (turnsDir) =>
 const turnFile = (n) => `turn-${String(n).padStart(4, '0')}.js`;
 
 // Allocates the id, writes the turn, prunes and rewrites boot.js, all under the lock.
-export function addTurn(ws, { agent, session, cwd, markdown, title }, now = new Date()) {
+export function addTurn(ws, { agent, session, cwd, markdown, title, zoom }, now = new Date()) {
   return withLock(ws, () => {
     const dir = wsDir(ws);
     const turnsDir = join(dir, 'turns');
@@ -90,6 +90,8 @@ export function addTurn(ws, { agent, session, cwd, markdown, title }, now = new 
     const n = (nums.at(-1) ?? 0) + 1;
     const id = String(n).padStart(4, '0');
     const turn = { v: 1, id, agent, session, cwd, time: now.toISOString(), title, markdown };
+    // Asks the viewer to open the first diagram enlarged (the Enlarge button in Claude Code).
+    if (zoom === true) turn.zoom = true;
     writeAtomic(join(turnsDir, turnFile(n)), `viz.add(${encode(turn)});\n`);
     const kept = [...nums, n].slice(-KEEP);
     for (const old of nums.filter((x) => !kept.includes(x))) rmSync(join(turnsDir, turnFile(old)), { force: true });

@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-11-15
+
+### Added
+
+- An **Enlarge** button next to each picture in Claude Code. It opens the diagram enlarged in the cmux side pane, drawn as vector graphics; outside cmux it opens the PNG in the system image viewer.
+- `push --zoom` asks the side pane to open the first diagram of the pushed answer enlarged.
+
+### Changed
+
+- Pictures in Claude Code keep their text legible. A tall diagram that would shrink below 0.8 of its size within 30 rows now grows taller, only as far as needed and at most two terminal heights, instead of shrinking to fit one screen.
+
 ## [0.3.0] - 2026-11-14
 
 ### Added

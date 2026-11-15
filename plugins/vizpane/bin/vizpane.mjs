@@ -71,14 +71,14 @@ async function push(values) {
   if (values.file || values.stdin) {
     const markdown = values.file ? readFileSync(values.file, 'utf8') : await readStdin();
     if (!markdown.trim()) throw new Error(`push: no input${values.file ? ` in ${values.file}` : ' on stdin'}`);
-    return publish({ agent: values.agent || 'manual', session: 'manual', cwd: process.cwd(), markdown, title: values.title });
+    return publish({ agent: values.agent || 'manual', session: 'manual', cwd: process.cwd(), markdown, title: values.title, zoom: values.zoom === true });
   }
   if (values.last) {
     const last = newestLast(wsId(), values.session);
     if (!last) throw new Error('저장된 직전 답변이 없습니다');
     return publish({ ...last, title: values.title });
   }
-  throw new Error('usage: vizpane push --last [--session <id>] | --file <path.md> | --stdin  [--title <t>] [--agent <name>]');
+  throw new Error('usage: vizpane push --last [--session <id>] | --file <path.md> | --stdin  [--title <t>] [--agent <name>] [--zoom]');
 }
 
 function inlineStatus() {
@@ -130,6 +130,7 @@ async function main() {
     options: {
       agent: { type: 'string' }, event: { type: 'string' }, last: { type: 'boolean' },
       session: { type: 'string' }, file: { type: 'string' }, title: { type: 'string' }, stdin: { type: 'boolean' },
+      zoom: { type: 'boolean' },
     },
   });
   switch (cmd) {

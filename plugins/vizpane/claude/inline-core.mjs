@@ -45,14 +45,18 @@ export function foldBlocks(text, okFlags, label) {
   return out + text.slice(at);
 }
 
-export const LEGIBLE_SCALE = 0.6;
+export const LEGIBLE_SCALE = 0.8;
 export const MAX_COLUMNS = 120;
 export const MAX_ROWS = 30;
+export const MAX_SCREENS = 2;
 const KITTY_MAX = 255;
 
 // Cell box for a picture. The terminal stretches the picture to fill the box, so the box has to
-// carry the picture's aspect ratio. A picture that the row cap would shrink below LEGIBLE_SCALE
-// gets the terminal's height (less 6 rows for the prompt) instead.
+// carry the picture's aspect ratio. Small pictures keep their size within MAX_ROWS rows. A picture
+// that the row cap would shrink below LEGIBLE_SCALE grows taller instead, as far as legibility
+// needs and at most MAX_SCREENS terminal heights: the transcript scrolls, and text too small to
+// read is worse than a tall picture. A picture wider than the terminal can only shrink; the
+// Enlarge button opens it in the side pane.
 // width and height are css px; cell is { width: points per cell, aspect: height / width }.
 // The layout arithmetic follows natsukium/claude-code-figures-plugin (Apache-2.0),
 // hooks/layout.ts, https://github.com/natsukium/claude-code-figures-plugin
@@ -71,8 +75,12 @@ export function fitCells(width, height, viewport, cell) {
     return { columns, rows, scale: Math.min(1, (columns * cell.width) / width) };
   };
   const capped = place(MAX_ROWS);
-  const tallest = Math.min(KITTY_MAX, viewport.rows - 6);
-  return capped.scale >= LEGIBLE_SCALE || tallest <= MAX_ROWS ? capped : place(tallest);
+  if (capped.scale >= LEGIBLE_SCALE) return capped;
+  // As large as the width allows, then only as tall as LEGIBLE_SCALE needs.
+  const byWidth = place(KITTY_MAX);
+  const needed = Math.ceil(byWidth.rows * Math.min(1, LEGIBLE_SCALE / byWidth.scale));
+  const limit = Math.min(KITTY_MAX, Math.max(MAX_ROWS, MAX_SCREENS * viewport.rows - 6));
+  return place(Math.max(MAX_ROWS, Math.min(needed, limit)));
 }
 
 // Two FNV-1a passes with different seeds: a cache key, not a security boundary.

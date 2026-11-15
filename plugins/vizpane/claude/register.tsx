@@ -106,6 +106,25 @@ function picture($: EngineInterface, s: Setup, source: string, theme: string): P
   return pending
 }
 
+// The Enlarge button: the side pane draws the diagram as a vector picture and opens it enlarged.
+// Outside cmux there is no pane, so the PNG opens in the system viewer instead.
+async function enlarge($: EngineInterface, source: string, file: string, title: string, korean: boolean) {
+  try {
+    if (await $.env.get('CMUX_WORKSPACE_ID')) {
+      const ran = await $.process.run(
+        ['node', `${$.plugin.root}/bin/vizpane.mjs`, 'push', '--stdin', '--zoom', '--agent', 'claude', '--title', title],
+        { stdin: '```mermaid\n' + source + '\n```\n', timeoutMs: 20000 })
+      if (ran.exitCode === 0) {
+        $.ui.toast(korean ? '옆 화면에 크게 열었습니다' : 'Opened enlarged in the side pane')
+        return
+      }
+    }
+    await $.process.run(['open', file], { timeoutMs: 10000 })
+  } catch {
+    $.ui.toast(korean ? '크게 열지 못했습니다' : 'Could not open the diagram')
+  }
+}
+
 const viewportOf = (e: { viewport?: Viewport }): Viewport => ({
   columns: e.viewport?.columns ?? 80,
   rows: e.viewport?.rows ?? 40,
@@ -134,7 +153,8 @@ export const register: Register = on => {
     // A block that could not be drawn stays as code and gets no picture.
     const folded = foldBlocks(text, drawn.map(d => d.ok), label)
     const row = await next({ ...e, props: { ...e.props, text: folded } })
-    const { Box, Image, Text } = $.ui.resolve(e)
+    const { Box, Button, Image, Text } = $.ui.resolve(e)
+    const more = korean ? '크게 보기' : 'Enlarge'
     const viewport = viewportOf(e)
     return (
       <Box flexDirection="column">
@@ -144,7 +164,11 @@ export const register: Register = on => {
           const box = fitCells(d.width, d.height, viewport, s.cell)
           return (
             <Box key={`viz-${i}`} marginLeft={2} marginTop={1} flexDirection="column">
-              <Text dimColor>{label} {i + 1}</Text>
+              <Box flexDirection="row">
+                <Text dimColor>{label} {i + 1}  </Text>
+                <Button key={`viz-more-${i}`} label={more}
+                  onPress={() => { void enlarge($, blocks[i].source, d.file, `${label} ${i + 1}`, korean) }} />
+              </Box>
               <Image source={{ file: d.file, format: 'png' }} columns={box.columns} rows={box.rows} alt={`[${label} ${i + 1}]`} />
             </Box>
           )

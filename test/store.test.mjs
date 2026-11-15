@@ -48,6 +48,14 @@ test('ids start at 0001 and increase; file content matches the contract byte for
   );
 });
 
+test('a turn carries zoom only when it is asked for', async () => {
+  await store.addTurn('w', entry('plain'), FIXED);
+  await store.addTurn('w', { ...entry('big'), zoom: true }, FIXED);
+  assert.ok(!readFileSync(join(home, 'data/w/turns/turn-0001.js'), 'utf8').includes('zoom'));
+  const text = readFileSync(join(home, 'data/w/turns/turn-0002.js'), 'utf8');
+  assert.equal(JSON.parse(text.slice('viz.add('.length, text.lastIndexOf(');'))).zoom, true);
+});
+
 test('encoding escapes < and line separators', async () => {
   const md = 'x </script><b> \u2028 \u2029 end';
   await store.addTurn('w', entry(md), FIXED);

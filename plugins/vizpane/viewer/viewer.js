@@ -3,7 +3,7 @@
 (function () {
   'use strict'
 
-  var VERSION = '0.3.0'
+  var VERSION = '0.3.1'
 
   var core = globalThis.vizCore
   // ?theme=light|dark overrides the system colour scheme (set through VIZPANE_THEME).
@@ -113,6 +113,8 @@
 
   var timeline = document.getElementById('timeline')
   var zoom = document.getElementById('zoom')
+  // How long after a push its zoom request still counts (the pane may first have to open).
+  var ZOOM_FRESH_MS = 30000
   var cards = new Map()
   var errors = []
   var seq = 0
@@ -304,6 +306,12 @@
       var done = enqueue(async function () {
         for (var i = 0; i < built.dias.length; i++) await renderDiagram(built.dias[i], id, i)
         if (booted) built.card.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        // The Enlarge button asks for the first diagram enlarged. Only a fresh request opens it:
+        // the same turn replayed when the page loads again must not.
+        var age = Date.now() - Date.parse(turn.time)
+        if (turn.zoom === true && age >= 0 && age < ZOOM_FRESH_MS && built.dias.length) {
+          openZoom(built.dias[0].querySelector('.dia-body'))
+        }
       })
       cards.set(id, done)
       return done
@@ -351,6 +359,19 @@
     zoom.textContent = ''
   }
 
+  function openZoom(body) {
+    var svg = body && body.querySelector('svg')
+    if (!svg) return
+    var copy = svg.cloneNode(true)
+    var natural = parseFloat(body.getAttribute('data-natural')) || svg.getBoundingClientRect().width
+    copy.removeAttribute('style')
+    copy.style.width = (natural * 1.25) + 'px'
+    copy.style.maxWidth = 'none'
+    zoom.textContent = ''
+    zoom.appendChild(copy)
+    zoom.classList.add('on')
+  }
+
   document.addEventListener('click', function (e) {
     var link = e.target.closest('a[href]')
     if (link && link.getAttribute('href').charAt(0) !== '#') { e.preventDefault(); return }
@@ -361,17 +382,7 @@
       return
     }
     if (zoom.classList.contains('on')) { closeZoom(); return }
-    var body = e.target.closest('.dia-body')
-    var svg = body && body.querySelector('svg')
-    if (svg) {
-      var copy = svg.cloneNode(true)
-      var natural = parseFloat(body.getAttribute('data-natural')) || svg.getBoundingClientRect().width
-      copy.removeAttribute('style')
-      copy.style.width = (natural * 1.25) + 'px'
-      copy.style.maxWidth = 'none'
-      zoom.appendChild(copy)
-      zoom.classList.add('on')
-    }
+    openZoom(e.target.closest('.dia-body'))
   })
 
   document.addEventListener('keydown', function (e) {
