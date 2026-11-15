@@ -215,7 +215,9 @@ static unsigned vf_cuts(const vf_t *f, const uint32_t **offs) {
                                        throttled by the terminal as it is without a relay */
 #define OUT_SIZE (READ_ROOM + READ_MAX + 2 * VF_SLACK)  /* a feed, then a flush, each with the filter's slack */
 #define CUT_MAX 4096
-#define FOLLOW_MS 40                /* delay of the follow-up SIGWINCH, see mirror_size */
+#define FOLLOW_MS 40                /* delay of the first follow-up SIGWINCH, see mirror_size */
+#define FOLLOW_MORE 2               /* further follow-ups after it, each after three times the gap before: 40, 160, 520 ms
+                                     * after the last change (a reader that is slow to run misses the first, see mirror_size) */
 #define HOLD_MS 5                   /* the filter's holdback timer */
 #define TOSTOP_RETRY_MS 250         /* how long a refused background write waits for the child's stop, see out_step */
 /* Upper bound for reading what Codex left in the master after it stopped or
@@ -616,6 +618,8 @@ typedef struct relay {
   size_t outlen, outoff, ncut;
   long long last_read_ms;
   long long follow_due_ms;  /* when the follow-up SIGWINCH is due, 0 for none */
+  int follow_left;          /* follow-ups still to send after the one that is due */
+  long long follow_gap_ms;  /* the gap that led to the one that is due */
   char dir[PATH_MAX];
   char tui_path[PATH_MAX];
   char resolved_path[PATH_MAX];
@@ -660,8 +664,17 @@ static void mirror_size(relay_t *r, int follow) {
    * flag again when its select() is interrupted, so a second signal that arrives while it
    * is still handling the first is swallowed and its read stays stale until the next key.
    * A signal a few tens of ms later finds it back in select(). Each further resize
-   * re-arms the timer, so the follow-up comes after the last one. */
-  if (follow) r->follow_due_ms = mono_ms() + FOLLOW_MS;
+   * re-arms the timer, so the follow-up comes after the last one.
+   * One is not enough for a reader that is slow to run (a loaded machine): its handling can
+   * outlast the 40 ms, and the follow-up is swallowed like the pane's own signal. The relay cannot
+   * tell when the reader is idle (it may be a grandchild, an editor Codex started), so the follow-up
+   * is repeated with a growing gap, FOLLOW_MORE more times at most, and only after a size change:
+   * the relay's own copy of each signal finds the sizes equal and starts no chain. */
+  if (follow) {
+    r->follow_due_ms = mono_ms() + FOLLOW_MS;
+    r->follow_gap_ms = FOLLOW_MS;
+    r->follow_left = FOLLOW_MORE;
+  }
 }
 
 /* ---- pending output and where it may be cut ---- */
@@ -1068,6 +1081,11 @@ static void relay_loop(relay_t *r) {
       if (left <= 0) {
         r->follow_due_ms = 0;
         (void)kill(0, SIGWINCH);
+        if (r->follow_left > 0) {
+          r->follow_left--;
+          r->follow_gap_ms *= 3;
+          r->follow_due_ms = mono_ms() + r->follow_gap_ms;
+        }
       } else if (timeout < 0 || left < timeout) {
         timeout = (int)left;
       }

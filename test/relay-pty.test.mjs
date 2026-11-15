@@ -404,7 +404,8 @@ for (const variantName of ['stub', 'filter']) {
       await session(variant, { harnessArgs: ['-s', '100,30,1000,600'], env: { VIZPANE_REAL_CODEX: standInBin } }, async (t) => {
         await t.waitReady();
         t.send('w');
-        await t.waitText('err-same', 0, 5000);
+        // the whole report: it can arrive in two pieces, and the match below needs all of it
+        await t.waitText('err-same 1>>', 0, 5000);
         assert.match(t.outText, /<<W 100 30 \/ 100 30 \/ err-same 1>>/, 'at the start stdout and /dev/tty have the pane\'s size, and stderr is stdout\'s device');
         for (let k = 0; k < rounds; k++) {
           const cols = 101 + k, rows = 30 + (k % 5);
@@ -425,6 +426,28 @@ for (const variantName of ['stub', 'filter']) {
       assert.equal(await resizeRounds(v, 20), 20);
     });
 
+    // The follow-up is repeated for a slow reader, but it is bounded and starts only from a size change: the
+    // pane's own signal, then 40, 160 and 520 ms after the resize, and nothing after that (the relay's own copy
+    // of each follow-up finds the sizes equal and starts no chain).
+    test('N13c: one resize gives the reader the pane\'s signal and at most three follow-ups, then quiet', T, async () => {
+      await session(v, { harnessArgs: ['-s', '100,30,1000,600'], env: { VIZPANE_REAL_CODEX: standInBin } }, async (t) => {
+        await t.waitReady();
+        t.send('w');
+        await t.waitText('err-same 1>>', 0, 5000);
+        const pos = t.out.length;
+        t.control('W 120 40 1200 800');
+        await sleep(2500);
+        const winches = (t.outText.slice(pos).match(/<<WINCH 120 40>>/g) ?? []).length;
+        assert.ok(winches >= 2 && winches <= 4, `${winches} signals reached the reader after one resize`);
+        const after = t.out.length;
+        await sleep(1500);
+        assert.equal(t.outText.slice(after).includes('<<WINCH'), false, 'no signal after the chain has ended');
+        t.send('q');
+        await t.waitEvent('EXIT 3');
+        await t.finish();
+      });
+    });
+
     test('N13 negative control: without the follow-up SIGWINCH the last read is stale', { ...T, skip: variantName !== 'stub' }, async () => {
       const good = await resizeRounds(variants.find((x) => x.name === 'nofollow'), 20);
       assert.ok(good < 20, `the test sees the stale read (right in ${good}/20)`);
@@ -443,9 +466,15 @@ for (const variantName of ['stub', 'filter']) {
           const cols = 101 + k, rows = 30 + (k % 5);
           const pos = t.out.length;
           t.control(`W ${cols} ${rows} ${cols * 10} ${rows * 20}`);
-          await sleep(300);
-          const reports = [...t.outText.slice(pos).matchAll(/<<VWINCH (\d+) (\d+)>>/g)];
-          if (reports.length && Number(reports.at(-1)[1]) === cols && Number(reports.at(-1)[2]) === rows) good++;
+          // The relay repeats its follow-up (40, 160 and 520 ms after the resize) because a reader that is slow
+          // to run on a loaded machine misses one; wait for the right size for up to 2 s instead of a fixed 300 ms.
+          const right = () => {
+            const reports = [...t.outText.slice(pos).matchAll(/<<VWINCH (\d+) (\d+)>>/g)];
+            return reports.length > 0 && Number(reports.at(-1)[1]) === cols && Number(reports.at(-1)[2]) === rows;
+          };
+          const end = Date.now() + 2000;
+          while (!right() && Date.now() < end) await sleep(10);
+          if (right()) good++;
         }
         t.send('q');
         await t.waitEvent('EXIT 3');
@@ -697,8 +726,15 @@ for (const variantName of ['stub', 'filter']) {
         assert.equal(stopped.split(' ')[3], String(SIGTSTP));
         const kids = spawnSync('pgrep', ['-P', String(t.relayPid)], { encoding: 'utf8' }).stdout.split('\n').filter(Boolean);
         assert.equal(kids.length, 1, 'the launcher has the relay as its child');
-        const state = spawnSync('ps', ['-o', 'stat=', '-p', kids[0]], { encoding: 'utf8' }).stdout.trim();
-        assert.match(state, /^T/, `the relay is stopped (${state})`);
+        // The launcher stops by Codex's own kill(0, SIGTSTP) and the shell sees it stopped at once; the relay
+        // stops after it, when it has read its SIGCHLD, drained the pty and looked at the child twice. That
+        // is a few ms on an idle machine and longer on a loaded one, so wait for it, with a bound.
+        const stateOf = () => spawnSync('ps', ['-o', 'stat=', '-p', kids[0]], { encoding: 'utf8' }).stdout.trim();
+        let state = stateOf();
+        const t0 = Date.now();
+        while (!/^T/.test(state) && Date.now() - t0 < 5000) { await sleep(10); state = stateOf(); }
+        assert.match(state, /^T/, `the relay is stopped (${state}) within 5 s of the launcher's stop`);
+        console.log(`# relay stopped ${Date.now() - t0} ms after the launcher's stop was seen (${v.name ?? ''})`);
         t.control('CONT');
         await t.waitLog(/^CONT/);
         t.send('q');
@@ -893,7 +929,7 @@ for (const variantName of ['stub', 'filter']) {
         await sleep(200);
         assert.equal(t.outText.slice(pos), 'ABC', 'stdout and stderr bytes arrive in the order written');
         t.send('w');
-        await t.waitText('err-same', pos, 5000);
+        await t.waitText('err-same 1>>', pos, 5000);
         assert.match(t.outText.slice(pos), /err-same 1/, 'Codex\'s stdout and stderr are one device');
         t.send('q');
         await t.waitEvent('EXIT 3');
@@ -913,7 +949,7 @@ for (const variantName of ['stub', 'filter']) {
         assert.equal(t.outText.slice(pos), 'AC', 'only stdout reaches the terminal');
         assert.equal(readFileSync(file, 'utf8'), 'BERR-LINE\r\n', 'stderr went to the file');
         t.send('w');
-        await t.waitText('err-same', pos, 5000);
+        await t.waitText('err-same 0>>', pos, 5000);
         assert.match(t.outText.slice(pos), /err-same 0/);
         t.send('q');
         await t.waitEvent('EXIT 3');
