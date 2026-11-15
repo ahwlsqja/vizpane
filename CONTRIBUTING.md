@@ -7,12 +7,20 @@ Bug reports, feature requests and pull requests are welcome. For a larger change
 - Node.js 20 or later. There are no dependencies to install.
 - cmux, only for the end-to-end script. Unit tests do not need it.
 - `gh` and `cargo`, only for the Codex terminal check.
+- `cc` (Xcode Command Line Tools), for the Codex relay tests. The filter tests are written to build on macOS and Linux (Linux: untested until CI runs); the pseudo-terminal tests run on macOS only and are skipped elsewhere. The job-control cases drive a real `/bin/zsh -i` and are skipped where it is missing.
 
 ## Tests
 
 ```sh
 node --test
 ```
+
+The relay tests compile `plugins/vizpane/inline/relay.c` with `cc` (the pseudo-terminal suite has timing-based cases and takes about six minutes, because it builds the relay twice). Two environment variables change how they build and run:
+
+- `VIZPANE_FUZZ=1` runs 10^6 random streams through the output filter instead of 2*10^4 (`VIZPANE_FUZZ_SEED` changes the base seed). The filter tests always run under AddressSanitizer and UndefinedBehaviorSanitizer, and an independent lexer in `test/helpers/vtlex.mjs` checks where insertions land.
+- `VIZPANE_TEST_ASAN=1` builds the relay of the pseudo-terminal suite with the same sanitizers. Use it when you change `relay.c` or `relay-filter.h`.
+
+`test/relay-osc52.test.mjs` is a measurement: it builds the relay and a writer that has Codex's write pattern (a frame to stdout, then an OSC 52 to `/dev/tty`), runs them against a terminal that reads fast or slowly, and prints how often the copy was cut. It takes about a minute. The rates depend on the machine, so only the control and the relay's own sequence integrity are asserted (and that copies up to 300 bytes were never cut, a measured result). Run it after any change to how the relay writes (chunk size, the free-space rule) and update every place that carries the numbers: `docs/codex-setup.md` (the master copy), `SECURITY.md`, `docs/how-it-works.md`, `README.md`, `README.ko.md`, `CHANGELOG.md` and the header of `plugins/vizpane/inline/relay.c`.
 
 Unit tests cover the store, hook, cmux handling (against a stub executable), fence extraction, the viewer logic in `viz-core.js`, the inline mod's pure logic (`claude/inline-core.mjs`) and the renderer build logic (with an injected build, so no test compiles Swift). They run without cmux.
 
@@ -28,6 +36,7 @@ The end-to-end script drives a real viewer. It must run inside a cmux terminal (
 |---|---|
 | `node scripts/vendor.mjs` | Reinstalls the pinned versions of Mermaid, marked and DOMPurify into a temporary directory and copies the bundles and licence files to `plugins/vizpane/viewer/vendor`. Needs `npm` and network access. When you change a version, change it in the script too. |
 | `node scripts/check-inline.mjs` | Builds the inline renderer into a temporary directory and draws the three examples of the `viz-style` skill to PNG files, printing each size, and checks that the renderer sends no network request. macOS only; needs `swiftc` and a login session. Run it when you change `inline/`. |
+| `node scripts/check-codex-inline.mjs` (`npm run check:codex-inline`) | Builds the Codex relay into a temporary state root, runs a test program through it in the current pane so that a picture is drawn, then shows, on the alternate screen, the placeholder cells of that picture (they must be blank) next to a control picture the script loads itself (it must show). You judge the result by eye. No model calls. macOS and cmux only, and it refuses to run elsewhere. **Run it only in a spare cmux pane**, never in a pane that holds a live agent session: it takes over the pane's terminal. |
 | `node scripts/check-codex-terminal.mjs` | Builds the Codex TUI's Mermaid text renderer from the installed Codex version and checks that every Mermaid example in the `viz-style` skill is accepted. Needs `gh`, `cargo` and `codex`. Options: `--width <columns>`, `--tag <tag>`, and file paths. |
 
 ## Versions
@@ -39,7 +48,7 @@ The version is stored in four places that must match:
 - `plugins/vizpane/.claude-plugin/plugin.json`
 - `plugins/vizpane/.codex-plugin/plugin.json`
 
-A unit test fails if they differ. A mismatch would make every push reload the viewer, because the page compares its `viz.version` with `VERSION`. When you release, also update `package.json`, `.claude-plugin/marketplace.json` and `CHANGELOG.md`.
+A unit test fails if they differ. A mismatch would make every push reload the viewer, because the page compares its `viz.version` with `VERSION`. When you release, also update `package.json`, `.claude-plugin/marketplace.json` and `CHANGELOG.md`. The renderer is rebuilt on users' machines at the next Claude Code session start or by `vizpane renderer` or `vizpane codex-inline`; the relay only by `vizpane codex-inline` (until then the old binary keeps running and `doctor` reports `skip`). A change to `inline/` should come with a version bump.
 
 ## Code style
 

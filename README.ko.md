@@ -1,13 +1,13 @@
 # vizpane
 
-**Claude Code와 Codex의 답변에 든 Mermaid 도식을 그림으로 보여 줍니다. Claude Code는 대화 안에 그리고, Codex는 cmux 옆 화면에 보여 줍니다.**
+**Claude Code와 Codex의 답변에 든 Mermaid 도식을 그림으로 보여 줍니다. Claude Code는 대화 안에 그립니다. Codex도 opt-in으로 켜는 experimental relay를 쓰면 대화 안에 그리고, 켜지 않으면 cmux 옆 화면에 보여 줍니다.**
 
 [English](README.md)
 
 터미널에서 쓰는 코딩 에이전트는 Mermaid를 코드 그대로 출력합니다. vizpane은 그 도식을 그림으로 그려 줍니다.
 
 - **Claude Code:** 답변 바로 아래, 대화 안에 그림이 나타나고 코드 블록은 한 줄로 접힙니다. Claude Code mod를 쓰며, cmux 같은 Ghostty 계열 터미널과 kitty에서 동작합니다.
-- **Codex:** turn이 끝나는 순간 같은 답변을 [cmux](https://cmux.com) 안의 browser 화면에 도식이 그려진 상태로 보여 줍니다. Codex에는 대화 안에 그림을 넣는 확장 지점이 없습니다.
+- **Codex:** 기본은 turn이 끝나는 순간 같은 답변을 [cmux](https://cmux.com) 안의 browser 화면에 도식이 그려진 상태로 보여 주는 방식입니다. Codex에는 대화 안에 그림을 넣는 extension point가 없어서, vizpane은 Codex를 terminal relay를 거쳐 실행해 Codex가 자기 transcript에 그림을 그리게 할 수도 있습니다. 이 방식은 opt-in이고 experimental입니다. [대화 안에 그림 넣기 (experimental)](#대화-안에-그림-넣기-experimental)를 참고하세요.
 
 서버도 daemon도 없고, 에이전트가 따로 도구를 호출할 필요도 없습니다.
 
@@ -20,7 +20,7 @@
 
 | | |
 |---|---|
-| **자동 표시** | Claude Code는 ` ```mermaid ` 블록을 답변 아래에 그립니다. Codex는 이런 블록이 있는 답변을 turn이 끝날 때 화면에 올립니다. 도식이 없는 답변은 올라오지 않고, 요청하면 화면에 올릴 수 있습니다. |
+| **자동 표시** | Claude Code는 ` ```mermaid ` 블록을 답변 아래에 그립니다. Codex는 이런 블록이 있는 답변을 turn이 끝날 때 화면에 올립니다. inline relay를 켰다면 대신 답변 아래에 그립니다. 도식이 없는 답변은 올라오지 않고, 요청하면 화면에 올릴 수 있습니다. |
 | **단순한 Mermaid에서 풍부한 그림** | 에이전트는 Mermaid의 작고 안전한 일부만 쓰고, 모양·색·묶음은 `%% viz:` 주석 줄에 적습니다. 화면이 이를 원통(저장소), queue(topic), 계층 상자, 구간 색칠, 단계 번호로 바꿔 그립니다. |
 | **화면은 한 타임라인** | Codex 답변과 `push`로 보낸 내용이 cmux workspace마다 하나의 화면에 badge로 구분되어 쌓입니다. |
 | **답변을 신뢰하지 않음** | 답변에는 웹에서 가져온 글이 섞일 수 있습니다. HTML을 걸러 내고, script는 실행하지 않으며, 원격 이미지와 stylesheet를 제거합니다. |
@@ -79,6 +79,7 @@ flowchart TB
 - Node.js 20 이상
 - Claude Code 또는 Codex CLI
 - Claude Code 대화 안에 그림을 그리려면 Claude Code 2.1.290 이상, 이미지를 표시하는 터미널(Ghostty, cmux, kitty), Xcode Command Line Tools(`xcode-select --install`)가 필요합니다. 도구에 든 `swiftc`가 renderer를 한 번, 몇 초 안에 빌드합니다. 없으면 Claude Code는 예전처럼 동작하고 도식은 옆 화면으로 갑니다.
+- Codex 대화 안에 그림을 그리려면(experimental) 같은 도구가 필요하고, 도구에 든 `cc`가 relay를 빌드합니다. Codex는 cmux 안에서 실행해야 합니다. [대화 안에 그림 넣기 (experimental)](#대화-안에-그림-넣기-experimental)를 참고하세요.
 
 ## 설치
 
@@ -105,9 +106,27 @@ codex plugin add vizpane@vizpane
 
 Codex 세션을 새로 시작하거나, 기존 세션을 `codex resume <session id>`로 이어서 엽니다. vizpane을 설치할 때 이미 떠 있던 세션에는 hook이 없습니다. [이미 떠 있던 세션](docs/codex-setup.md#sessions-that-were-already-running)을 참고하세요.
 
+#### 대화 안에 그림 넣기 (experimental)
+
+세 번째 단계는 하지 않아도 됩니다. 기본으로는 도식이 있는 Codex 답변이 옆 화면에 열립니다. 그림을 Codex 대화 안에 그리려면 한 번만 이 명령을 실행합니다.
+
+```bash
+node ~/.local/state/vizpane/bin/vizpane.mjs codex-inline
+```
+
+Xcode Command Line Tools(`swiftc`, `cc`)로 renderer와 relay를 빌드하고, relay가 실행할 Codex를 확인한 뒤 다음과 같은 줄 하나를 출력합니다.
+
+```bash
+export CMUX_CUSTOM_CODEX_PATH="$HOME/.local/state/vizpane/relay/codex"
+```
+
+이 줄을 shell profile에 직접 추가하고 새 cmux pane을 엽니다. vizpane은 dotfile을 고치지 않습니다. `CMUX_CUSTOM_CODEX_PATH`가 이미 직접 쓰는 Codex를 가리키고 있었다면 그 값을 `VIZPANE_REAL_CODEX`로도 export하세요(명령이 경고해 줍니다). 명령은 그대로 `codex`, `codex resume`입니다. relay는 Codex의 출력만 그대로 전달하고 각 그림의 데이터를 안전한 지점에서 한 번 끼워 넣습니다. 키 입력, terminal mode, 창 크기는 Codex와 shell이 그대로 가지며 relay는 입력을 읽지 않습니다. Ctrl+Z, `fg`, `bg`, `kill %1`은 relay가 없을 때와 같게 동작하도록 설계했고, 알려진 차이가 하나 있습니다(한계 참고). Codex는 답변을 streaming으로 보여 주고, turn이 끝나면 hook이 도식을 render해 그림이 답변 아래에 나타납니다. 그동안 turn 종료가 1초쯤(최대 약 7초) 늦어집니다. `codex resume` 뒤에는 그림이 다시 나오지 않습니다. vizpane을 업데이트한 뒤에는 이 명령을 다시 실행하세요. 그렇지 않으면 답변이 다시 옆 화면으로 갑니다. 현재 build를 cmux 0.64.22와 Codex 0.169.0에서 실제로 실행해 job control(Ctrl+Z, `bg`, `fg`, `kill %1`을 `stty tostop` 유무로 각각)과 도식 turn 하나를 확인했습니다. 그림(여섯 개, 큰 그림 하나), 스트리밍 중 창 크기 변경, Ctrl+G, `codex resume`은 출력 경로가 같은 이전 build에서 실제로 실행해 봤습니다. relay가 기대는 Codex 동작은 0.169.0 source에서 확인했습니다.
+
+relay가 pane의 foreground process이고 cmux 터미널이 출력을 parse하는 방식을 따라가야 하므로 experimental입니다. Codex의 출력 경로에 C 코드 약 2,900줄이 더해지고, Codex 세션마다 process 하나(메모리 약 1.5 MB)가 늘며, 긴 답변을 scroll할 때 core 하나의 약 1.5%를 씁니다. 출력은 relay가 없을 때보다 두세 배 느립니다(약 125 MB/s 대신 40~63 MB/s로, Codex가 내보내는 양보다 훨씬 큽니다). 드물게 clipboard 복사가 실패할 수 있습니다(한계 참고). 켜기 전에 [설정 안내](docs/codex-setup.md#inline-pictures-experimental)(영문)와 [SECURITY.md](SECURITY.md)(영문)를 읽어 보세요. 한 번만 끄려면 `VIZPANE_INLINE=off codex`를 실행하고, 완전히 끄려면 export 줄을 지웁니다.
+
 ## 사용
 
-에이전트에게 도식으로 설명해 달라고 하면 됩니다. Claude Code에서는 답변 아래에 그림이 나타나고, 옆의 **크게 보기**를 누르면 옆 화면에 도식이 크게 열립니다. Codex에서는 turn이 끝나면 터미널 오른쪽에 화면이 열리고, 키보드 focus는 옮겨 가지 않습니다.
+에이전트에게 도식으로 설명해 달라고 하면 됩니다. Claude Code에서는 답변 아래에 그림이 나타나고, 옆의 **크게 보기**를 누르면 옆 화면에 도식이 크게 열립니다. Codex에서는 turn이 끝나면 터미널 오른쪽에 화면이 열리고, 키보드 focus는 옮겨 가지 않습니다. experimental inline relay를 켰다면 그림이 대화 안에 나타납니다.
 
 화면과 아래 명령은 두 에이전트 모두에서 쓸 수 있습니다. 그 밖의 일은 명령 하나로 합니다. 에이전트에게 "화면에 올려 줘"라고 하면 함께 설치되는 `viz` skill이 실행하고, 직접 실행해도 됩니다.
 
@@ -131,9 +150,9 @@ node ~/.local/state/vizpane/bin/vizpane.mjs <명령>
 
 | 환경 변수 | 동작 |
 |---|---|
-| `VIZPANE_THEME=light` 또는 `dark` | 시스템 설정 대신 테마 고정 |
+| `VIZPANE_THEME=light` 또는 `dark` | 시스템 설정 대신 테마 고정. Codex 대화 안 그림은 light가 아니면 dark로 그립니다 |
 | `VIZPANE_HOME=/path` | `~/.local/state/vizpane` 대신 다른 곳에 저장 |
-| `VIZPANE_INLINE=off` | Claude Code 대화 안에 그림을 그리지 않음. 답변은 다시 옆 화면으로 감 |
+| `VIZPANE_INLINE=off` | Claude Code와 Codex 대화 안에 그림을 그리지 않음. 답변은 다시 옆 화면으로 감. Codex는 그 실행에서 relay 없이 시작함 |
 
 ## figures plugin과 함께 쓰기
 
@@ -159,9 +178,9 @@ echo '{"renderers":"mmdc"}' | claude plugin configure figures@figures --values-s
 +---------------------------+------ no ----> store only
 ```
 
-이 그림은 Codex와 `push`의 경로입니다. Claude Code에서는 mod가 그림을 그리고 Stop hook은 답변을 저장만 합니다. [docs/how-it-works.md](docs/how-it-works.md#inline-pictures-in-claude-code)(영문)를 참고하세요.
+이 그림은 relay 없는 Codex와 `push`의 경로입니다. Claude Code에서는 mod가 그림을 그리고 Stop hook은 답변을 저장만 합니다. [docs/how-it-works.md](docs/how-it-works.md#inline-pictures-in-claude-code)(영문)를 참고하세요. Codex relay를 켜면 hook이 도식을 render하고 Codex가 자기 transcript에 그립니다. [docs/how-it-works.md](docs/how-it-works.md#inline-pictures-in-codex-experimental)(영문)를 참고하세요.
 
-hook은 끝난 답변을 분리된 프로세스에 넘기고 바로 끝나므로 turn을 늦추거나 실패시키지 않습니다. 넘겨받은 프로세스가 답변을 저장하고, 도식이 있으면 열려 있는 화면에 불러오게 합니다. 자세한 내용은 [docs/how-it-works.md](docs/how-it-works.md)(영문)에 있습니다.
+이 경로에서 hook은 끝난 답변을 분리된 프로세스에 넘기고 바로 끝나므로 turn을 늦추거나 실패시키지 않습니다. Codex relay를 켜면 위에서 설명한 대로 hook이 먼저 render합니다. 넘겨받은 프로세스가 답변을 저장하고, 도식이 있으면 열려 있는 화면에 불러오게 합니다. 자세한 내용은 [docs/how-it-works.md](docs/how-it-works.md)(영문)에 있습니다.
 
 ## 보안
 
@@ -170,8 +189,12 @@ hook은 끝난 답변을 분리된 프로세스에 넘기고 바로 끝나므로
 ## 한계
 
 - **옆 화면은 cmux가 필요합니다.** 화면이 cmux browser 표면입니다. cmux 밖에서는 Codex 답변을 저장만 하고 아무것도 열지 않습니다.
-- **대화 안의 그림은 Claude Code에서만 됩니다.** Claude Code에는 대화 안에 이미지를 그리는 확장 지점이 있습니다. Codex에는 없어서 그림이 옆 화면에 남습니다.
-- **대화 안의 그림은 macOS, `swiftc`, 이미지를 표시하는 터미널이 필요합니다.** 없으면 Claude Code는 코드 블록을 그대로 보여 주고 답변은 옆 화면으로 갑니다.
+- **Claude Code에는 그림용 extension point가 있고 Codex에는 없습니다.** Claude Code에서는 mod가 그림을 그립니다. Codex에는 그런 지점이 없어서, vizpane은 opt-in했을 때만 terminal relay로 Codex를 감쌉니다. 켜지 않으면 Codex 그림은 옆 화면에 남습니다.
+- **Codex 대화 안의 그림은 experimental이고 macOS와 cmux에서만 됩니다.** `codex-inline`이 만드는 relay, shell profile의 export 줄, Xcode Command Line Tools의 `swiftc`와 `cc`가 필요합니다. relay가 죽으면 prompt가 바로 돌아오지만 터미널은 복원되지 않으므로 `reset`을 입력합니다. Codex는 출력을 다음에 쓰거나 터미널을 다음에 읽을 때 끝날 것으로 봅니다(Codex source와 stand-in으로 추론한 것이고 실제 Codex로 재지는 않았습니다. idle 상태인 Codex는 남아 있을 수 있으니 남은 것은 `kill`로 끝내세요). `codex resume`으로 세션을 이어 갈 수 있습니다.
+- **Codex 대화 안의 그림은 보존되지 않습니다.** `codex resume` 뒤에는 다시 나오지 않고, Codex가 끝나면 해제됩니다(best effort이며, no-alt-screen 모드에서는 scrollback에 빈 칸이 남습니다). 답변 아래 그림을 render하는 동안 diagram turn 종료가 1초쯤(최대 약 7초) 늦어집니다.
+- **`stty tostop`을 켠 상태에서 `bg`, `fg`를 하면 Codex가 raw mode 없이 돌아옵니다.** shell에 `stty tostop`을 설정한 경우(macOS 기본값은 아닙니다) Ctrl+Z, `bg`, `fg`를 거치면 relay를 쓰는 Codex가 raw mode 없이 돌아옵니다. 입력이 줄 단위로 모이고, `/quit` 뒤 첫 Enter가 줄바꿈으로 들어갑니다. stock Codex도 `tostop`이 꺼져 있으면 똑같이 됩니다. resume 뒤에 중단된 `tcsetattr`를 다시 시도하지 않기 때문입니다. relay가 있으면 Codex의 출력이 controlling terminal이 아니라서 `tostop`이 켜져 있어도 같은 일이 생깁니다. `/quit`을 입력하고 Enter를 두 번 누른 뒤 `codex resume`으로 이어 가세요. `bg` 없이 Ctrl+Z와 `fg`만 쓰면 영향이 없습니다.
+- **Codex의 native clipboard가 실패하면 `/copy`가 실패할 수 있습니다.** Codex는 macOS clipboard로 복사하고, 그것이 실패할 때만 OSC 52 sequence를 씁니다. relay가 있으면 이 sequence가 Codex 자신의 화면 글자에 잘릴 수 있습니다. 1 KiB 복사는 약 11%~77%, 4 KiB는 60%~97%가 잘리고, 300 byte 이하는 잘린 적이 없습니다(잘리는 비율이며, Codex의 write 패턴으로 잰 값입니다. `test/relay-osc52.test.mjs`가 출력합니다). 잘린 복사는 cmux 터미널이 올바른 base64가 아니라며 거의 항상 거부하므로 clipboard는 이전 내용 그대로이고, Codex는 "Copy unconfirmed"라고 알려 줍니다. 이 메시지가 보이면 shell에 붙여 넣기 전에 clipboard를 확인하세요. 이전에 복사한 내용이 들어 있을 수 있습니다. 잘린 복사 중 일부(한 번 측정에서 603건 중 21건)는 앞부분만 복사된 채 남을 수 있습니다. [SECURITY.md](SECURITY.md)(영문)를 참고하세요.
+- **Claude Code 대화 안의 그림은 macOS, `swiftc`, 이미지를 표시하는 터미널이 필요합니다.** 없으면 Claude Code는 코드 블록을 그대로 보여 주고 답변은 옆 화면으로 갑니다.
 - **대화 안의 그림은 도식만 지원합니다.** renderer는 Mermaid만 그립니다.
 - **cmux workspace마다 화면은 하나입니다.** 그 workspace의 모든 에이전트가 같이 씁니다.
 - **Mermaid 버전은 고정입니다.** `plugins/vizpane/viewer/vendor/VERSIONS.json`에 적힌 버전을 씁니다.
@@ -183,6 +206,7 @@ hook은 끝난 답변을 분리된 프로세스에 넘기고 바로 끝나므로
 ```bash
 node --test                           # 단위·계약 테스트, cmux 불필요
 node scripts/e2e-cmux.mjs             # end-to-end, cmux 터미널 안에서 실행
+npm run check:codex-inline            # Codex relay 화면 확인, 비어 있는 cmux pane에서만 실행
 node scripts/vendor.mjs               # 번들한 browser 라이브러리 갱신
 ```
 

@@ -1,6 +1,6 @@
 {
   "name": "vizpane",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Rendered Mermaid diagrams for Claude Code and Codex answers, in a cmux pane next to the agent.",
   "private": true,
   "type": "module",
@@ -19,6 +19,7 @@
   "scripts": {
     "test": "node --test",
     "e2e": "node scripts/e2e-cmux.mjs",
+    "check:codex-inline": "node scripts/check-codex-inline.mjs",
     "vendor": "node scripts/vendor.mjs"
   }
 }

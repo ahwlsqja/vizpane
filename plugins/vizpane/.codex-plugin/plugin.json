@@ -1,6 +1,6 @@
 {
   "name": "vizpane",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Rendered Mermaid diagrams for Claude Code and Codex answers, in a cmux pane next to the agent.",
   "license": "MIT",
   "author": {

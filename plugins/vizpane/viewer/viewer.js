@@ -3,7 +3,7 @@
 (function () {
   'use strict'
 
-  var VERSION = '0.3.1'
+  var VERSION = '0.4.0'
 
   var core = globalThis.vizCore
   // ?theme=light|dark overrides the system colour scheme (set through VIZPANE_THEME).
