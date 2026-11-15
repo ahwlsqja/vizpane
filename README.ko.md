@@ -11,10 +11,9 @@
 
 서버도 daemon도 없고, 에이전트가 따로 도구를 호출할 필요도 없습니다.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/sequence-dark.png">
-  <img src="docs/images/sequence-light.png" alt="vizpane이 그린 Claude Code 답변. Flink가 Kafka에 two-phase commit으로 쓰는 시퀀스 다이어그램에 참가자 묶음, 단계 번호, 구간 색칠이 들어 있고, 아래에 읽는 순서와 표가 이어진다." width="820">
-</picture>
+<img src="docs/images/inline-claude.png" alt="cmux 안의 Claude Code 답변. CDC pipeline을 설명하는 두 문장, 'diagram 1' 한 줄로 접힌 mermaid 블록, 답변 아래 'diagram 1 [ Enlarge ]' 라벨과 그 밑에 그려진 flowchart: 원통 모양의 PostgreSQL과 ClickHouse, Debezium, Kafka topic, Flink job, 노란 'Retries left?' 분기, 빨간 DLQ topic." width="900">
+
+**크게 보기**(영어 환경에서는 Enlarge)를 누르면 옆 화면에 도식이 크게 열립니다.
 
 ## 하는 일
 
@@ -108,6 +107,8 @@ Codex 세션을 새로 시작하거나, 기존 세션을 `codex resume <session 
 
 #### 대화 안에 그림 넣기 (experimental)
 
+<img src="docs/images/inline-codex.png" alt="relay를 켠 cmux 안의 Codex 답변. Codex가 직접 출력한 'Mermaid 도식이 터미널 폭에 맞지 않는다'는 안내와 원본 코드, 그 아래 'Hook · vizpane · 1 diagram' 줄과 그려진 flowchart: PostgreSQL, Debezium, Kafka topic, Flink job, 'Write OK?' 분기, ClickHouse, 빨간 dead-letter 상자." width="900">
+
 세 번째 단계는 하지 않아도 됩니다. 기본으로는 도식이 있는 Codex 답변이 옆 화면에 열립니다. 그림을 Codex 대화 안에 그리려면 한 번만 이 명령을 실행합니다.
 
 ```bash
@@ -192,7 +193,7 @@ echo '{"renderers":"mmdc"}' | claude plugin configure figures@figures --values-s
 - **Claude Code에는 그림용 extension point가 있고 Codex에는 없습니다.** Claude Code에서는 mod가 그림을 그립니다. Codex에는 그런 지점이 없어서, vizpane은 opt-in했을 때만 terminal relay로 Codex를 감쌉니다. 켜지 않으면 Codex 그림은 옆 화면에 남습니다.
 - **Codex 대화 안의 그림은 experimental이고 macOS와 cmux에서만 됩니다.** `codex-inline`이 만드는 relay, shell profile의 export 줄, Xcode Command Line Tools의 `swiftc`와 `cc`가 필요합니다. relay가 죽으면 prompt가 바로 돌아오지만 터미널은 복원되지 않으므로 `reset`을 입력합니다. Codex는 출력을 다음에 쓰거나 터미널을 다음에 읽을 때 끝날 것으로 봅니다(Codex source와 stand-in으로 추론한 것이고 실제 Codex로 재지는 않았습니다. idle 상태인 Codex는 남아 있을 수 있으니 남은 것은 `kill`로 끝내세요). `codex resume`으로 세션을 이어 갈 수 있습니다.
 - **Codex 대화 안의 그림은 보존되지 않습니다.** `codex resume` 뒤에는 다시 나오지 않고, Codex가 끝나면 해제됩니다(best effort이며, no-alt-screen 모드에서는 scrollback에 빈 칸이 남습니다). 답변 아래 그림을 render하는 동안 diagram turn 종료가 1초쯤(최대 약 7초) 늦어집니다.
-- **`stty tostop`을 켠 상태에서 `bg`, `fg`를 하면 Codex가 raw mode 없이 돌아옵니다.** shell에 `stty tostop`을 설정한 경우(macOS 기본값은 아닙니다) Ctrl+Z, `bg`, `fg`를 거치면 relay를 쓰는 Codex가 raw mode 없이 돌아옵니다. 입력이 줄 단위로 모이고, `/quit` 뒤 첫 Enter가 줄바꿈으로 들어갑니다. stock Codex도 `tostop`이 꺼져 있으면 똑같이 됩니다. resume 뒤에 중단된 `tcsetattr`를 다시 시도하지 않기 때문입니다. relay가 있으면 Codex의 출력이 controlling terminal이 아니라서 `tostop`이 켜져 있어도 같은 일이 생깁니다. `/quit`을 입력하고 Enter를 두 번 누른 뒤 `codex resume`으로 이어 가세요. `bg` 없이 Ctrl+Z와 `fg`만 쓰면 영향이 없을 것입니다. `fg`가 raw mode 설정보다 먼저 Codex를 foreground로 돌려놓기 때문입니다(소스로 확인했고 시험하지는 않았습니다).
+- **`stty tostop`을 켠 상태에서 `bg`, `fg`를 하면 Codex가 raw mode 없이 돌아옵니다.** shell에 `stty tostop`을 설정한 경우(macOS 기본값은 아닙니다) Ctrl+Z, `bg`, `fg`를 거치면 relay를 쓰는 Codex가 raw mode 없이 돌아옵니다. 입력이 줄 단위로 모이고, `/quit` 뒤 첫 Enter가 줄바꿈으로 들어갑니다. stock Codex도 `tostop`이 꺼져 있으면 똑같이 됩니다. resume 뒤에 중단된 `tcsetattr`를 다시 시도하지 않기 때문입니다. relay가 있으면 Codex의 출력이 controlling terminal이 아니라서 `tostop`이 켜져 있어도 같은 일이 생깁니다. `/quit`을 입력하고 Enter를 두 번 누른 뒤 `codex resume`으로 이어 가세요. upstream에 [openai/codex#37088](https://github.com/openai/codex/issues/37088)로 제보했습니다. `bg` 없이 Ctrl+Z와 `fg`만 쓰면 영향이 없을 것입니다. `fg`가 raw mode 설정보다 먼저 Codex를 foreground로 돌려놓기 때문입니다(소스로 확인했고 시험하지는 않았습니다).
 - **Codex의 native clipboard가 실패하면 `/copy`가 실패할 수 있습니다.** Codex는 macOS clipboard로 복사하고, 그것이 실패할 때만 OSC 52 sequence를 씁니다. relay가 있으면 이 sequence가 Codex 자신의 화면 글자에 잘릴 수 있습니다. 1 KiB 복사는 약 11%~77%, 4 KiB는 60%~98%가 잘리고, 300 byte 이하는 잘린 적이 없습니다(잘리는 비율이며, Codex의 write 패턴으로 잰 값입니다. `test/relay-osc52.test.mjs`가 출력합니다). 잘린 복사는 cmux 터미널이 올바른 base64가 아니라며 거의 항상 거부하므로 clipboard는 이전 내용 그대로이고, Codex는 "Copy unconfirmed"라고 알려 줍니다. 이 메시지가 보이면 shell에 붙여 넣기 전에 clipboard를 확인하세요. 이전에 복사한 내용이 들어 있을 수 있습니다. 잘린 복사 중 일부(한 번 측정에서 603건 중 21건)는 앞부분만 복사된 채 남을 수 있습니다. [SECURITY.md](SECURITY.md)(영문)를 참고하세요.
 - **Claude Code 대화 안의 그림은 macOS, `swiftc`, 이미지를 표시하는 터미널이 필요합니다.** 없으면 Claude Code는 코드 블록을 그대로 보여 주고 답변은 옆 화면으로 갑니다.
 - **대화 안의 그림은 도식만 지원합니다.** renderer는 Mermaid만 그립니다.

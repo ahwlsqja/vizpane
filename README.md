@@ -15,10 +15,9 @@ Terminal coding agents print Mermaid as source code. vizpane draws the diagram i
 
 There is no server, no daemon and no tool call for the agent to make.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/sequence-dark.png">
-  <img src="docs/images/sequence-light.png" alt="A Claude Code answer rendered by vizpane: a sequence diagram of Flink's two-phase commit to Kafka, with grouped participants, numbered steps and shaded phases, followed by the reading order and a table." width="820">
-</picture>
+<img src="docs/images/inline-claude.png" alt="A Claude Code answer in cmux: two sentences about a CDC pipeline, the mermaid block folded to the line 'diagram 1', and under the answer the label 'diagram 1 [ Enlarge ]' above the rendered flowchart: PostgreSQL, Debezium, a Kafka topic, a Flink job, ClickHouse as cylinders, a yellow 'Retries left?' decision and a red DLQ topic." width="900">
+
+Click **Enlarge** to open the diagram large in the side pane.
 
 ## What it does
 
@@ -110,6 +109,8 @@ Start a new Codex session, or continue an existing one with `codex resume <sessi
 
 #### Inline pictures (experimental)
 
+<img src="docs/images/inline-codex.png" alt="A Codex answer in cmux with the relay on: Codex's own message that the Mermaid diagram does not fit and its source text, then the line 'Hook · vizpane · 1 diagram' and under it the rendered flowchart from PostgreSQL through Debezium, a Kafka topic and a Flink job to a 'Write OK?' decision, ClickHouse and a red dead-letter box." width="900">
+
 A third step is optional. By default Codex answers with a diagram open in the side pane. To have the picture drawn inside the Codex conversation instead, run this once:
 
 ```bash
@@ -194,7 +195,7 @@ Answers are treated as untrusted input. The inline renderer draws diagrams in an
 - **Claude Code has an extension point for pictures, Codex does not.** In Claude Code the picture is drawn by a mod. Codex has no such point, so vizpane runs Codex through a terminal relay, and only if you opt in. Without it, Codex pictures stay in the side pane.
 - **Codex inline pictures are experimental and macOS plus cmux only.** They need the relay from `codex-inline`, the export line in your shell profile, and `swiftc` and `cc` from the Xcode Command Line Tools. If the relay dies, the prompt comes back at once but the terminal is not restored (type `reset`); Codex should end at its next write to its output or read of the terminal (inferred from its source and from stand-ins, not measured with a real Codex; an idle one may stay, so end a leftover one with `kill`), and `codex resume` continues the session.
 - **Codex inline pictures are not kept.** They do not come back after `codex resume`, and they are freed when Codex exits (best effort; in no-alt-screen mode the scrollback keeps blank boxes). The end of a diagram turn is about a second later (at most about 7 seconds) while the hook renders the picture, which appears under the answer.
-- **`bg` and `fg` with `stty tostop` leave Codex without raw mode.** In a shell with `stty tostop` set (not the macOS default), after Ctrl+Z, `bg` and `fg`, the relayed Codex comes back without raw mode: input is collected by line and the first Enter after `/quit` becomes a newline. Stock Codex does the same when `tostop` is off, because it does not retry an interrupted `tcsetattr` after a resume; the relay makes it happen with `tostop` on as well, since Codex's output is then no longer on its controlling terminal. Type `/quit` and press Enter twice, then `codex resume`. Ctrl+Z and `fg` without `bg` should not be affected: `fg` puts Codex back in the foreground before it sets raw mode (read in the source, not tested).
+- **`bg` and `fg` with `stty tostop` leave Codex without raw mode.** In a shell with `stty tostop` set (not the macOS default), after Ctrl+Z, `bg` and `fg`, the relayed Codex comes back without raw mode: input is collected by line and the first Enter after `/quit` becomes a newline. Stock Codex does the same when `tostop` is off, because it does not retry an interrupted `tcsetattr` after a resume; the relay makes it happen with `tostop` on as well, since Codex's output is then no longer on its controlling terminal. Type `/quit` and press Enter twice, then `codex resume`. Reported upstream in [openai/codex#37088](https://github.com/openai/codex/issues/37088). Ctrl+Z and `fg` without `bg` should not be affected: `fg` puts Codex back in the foreground before it sets raw mode (read in the source, not tested).
 - **`/copy` can fail when Codex's native clipboard fails.** Codex copies through the macOS clipboard and uses an OSC 52 sequence only when that fails. With the relay that sequence can be cut by Codex's own screen text: copies of 1 KiB in about 1 of 9 to 3 of 4 tries, 4 KiB in 60% to 98%, never up to 300 bytes (cut rates, measured with Codex's write pattern; `test/relay-osc52.test.mjs` prints them). cmux's terminal then rejects the copy as invalid base64 in nearly every case, so the clipboard keeps what it held before, and Codex says "Copy unconfirmed". Treat that message as the cue to check the clipboard before you paste it into a shell: it may hold an older copy. A few cut copies (21 of 603 in one run) can leave a truncated copy. See [SECURITY.md](SECURITY.md).
 - **Claude Code inline pictures need macOS, `swiftc` and an image-capable terminal.** Where they are missing, Claude Code shows the code block as before and the answer goes to the pane.
 - **Inline pictures are diagrams only.** The renderer draws Mermaid and nothing else.
