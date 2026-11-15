@@ -288,7 +288,10 @@ static size_t pump_master(void) {
         g_total += n;
         total += (size_t)n;
         (void)nanosleep(&ts, NULL);
-        continue;
+        /* One slow chunk per pass: the main loop polls the control pipe (HANGUP, RESUME, ...) between
+         * chunks. Looping here until the master runs dry would postpone every control line until the
+         * program stops writing, so a hang-up "while Codex streams" waited for the whole stream. */
+        break;
       }
       write_fully(1, buf, (size_t)n);
       g_total += n;

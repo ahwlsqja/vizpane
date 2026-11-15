@@ -1011,6 +1011,10 @@ for (const variantName of ['stub', 'filter']) {
         // ends, and the relay's status is its status
         await until(() => t.event('SIGNAL 1') || t.event('EXIT 0'), 10000, 'the job to end');
         await t.finish();
+        // The hang-up really came while Codex was streaming (the stream is about 2.4 MB, the terminal takes
+        // 256 bytes per 0.5 ms): a harness that serves its control lines only after the stream has ended
+        // would pass the line above for the wrong reason, and time out on a loaded machine.
+        assert.ok(t.out.length < 1024 * 1024, `the terminal got ${t.out.length} bytes, the stream was not cut`);
         assert.deepEqual(t.sessionDirs(), []);
       });
     });
