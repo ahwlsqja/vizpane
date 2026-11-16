@@ -125,7 +125,7 @@ Measured with Codex's write pattern (a 40-row frame, then one OSC 52, from one t
 
 | Copy size | Cut by the relay (cut rate, not clipboard outcome) |
 |---|---|
-| 256 and 300 bytes | never (no cut in any of the runs) |
+| 256 and 300 bytes | rarely (none in our local runs; one 256-byte copy in a CI run on a slower machine) |
 | 1 KiB | about 1 in 9 to 3 in 4 tries (11% to 77% in our runs, depending on how fast the terminal reads) |
 | 4 KiB | about 60% to 98% |
 

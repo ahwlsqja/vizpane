@@ -209,7 +209,8 @@ static unsigned vf_cuts(const vf_t *f, const uint32_t **offs) {
 #define CHUNK 512                   /* most bytes of one write to the pane: it waits for POLLOUT, which on a
                                        pty means at most 256 of the queue's 1024 bytes are taken, so a chunk
                                        normally fits whole; a foreign write that took the room can still make
-                                       the kernel split it */
+                                       the kernel split it, and a chunk of up to CHUNK_MAX can leave no room
+                                       for a foreign write, which the kernel then splits (rare at 256 bytes) */
 #define CHUNK_MAX 768               /* only to reach a safe cut point; the free space after POLLOUT */
 #define READ_MAX 1024               /* one read from the master: the inner queue holds no more */
 #define READ_ROOM CHUNK             /* read the master only with at most one chunk pending, so Codex is

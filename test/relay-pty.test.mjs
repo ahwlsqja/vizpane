@@ -1134,10 +1134,9 @@ for (const variantName of ['stub', 'filter']) {
           // that finds the room taken is partial; only then can a foreign sequence land inside the relayed stream.
           assert.ok(r.bad + r.parted <= r.partials, `${size}: ${r.bad + r.parted} landings inside, but only ${r.partials} partial relay writes`);
         }
-        if (size <= 256) {
-          assert.equal(r.cut, 0, `${size}: foreign writes cut by the relay`);
-          assert.equal(r.partials, 0, `${size}: partial relay writes`);
-        }
+        // How often a short foreign write is cut is printed, not asserted: a relay chunk of up to 768 bytes (to reach
+        // a safe cut point) can leave the pane's queue no room, and the kernel then splits even a 256-byte write. Rare
+        // here, but it happened once on a slower CI machine. What must hold is above: no landing inside an item.
       }
       console.log(`# N1 (${variantName}): ${lines.join('; ')}`);
     });
