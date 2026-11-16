@@ -3,7 +3,7 @@
 vizpane has no server and no daemon. It has three paths.
 
 - **Side pane (Codex by default, and `push` for any agent).** A hook script stores the answer as a small script file, and a static HTML page in a cmux browser pane loads it. This is the path described first.
-- **Inline (Claude Code).** A Claude Code mod draws the diagram as a picture under the answer. See [Inline pictures in Claude Code](#inline-pictures-in-claude-code).
+- **Inline (Claude Code).** A Claude Code mod draws the diagram as a picture where it stands in the answer. See [Inline pictures in Claude Code](#inline-pictures-in-claude-code).
 - **Inline (Codex, experimental, opt-in).** A per-session relay lets Codex draw the picture in its own transcript. See [Inline pictures in Codex](#inline-pictures-in-codex-experimental).
 
 ```text
@@ -150,7 +150,7 @@ assistant reply (Markdown)
  viz-render (Swift helper)  ->  <state root>/inline/cache/<hash>-<theme>.png
         |  offscreen WebKit view runs Mermaid 12, network loads blocked
         v
- mod: fold each drawn block to "▸ diagram N", add an Image under the reply
+ mod: draw the reply in pieces, each picture where its block was
 ```
 
 Steps:
@@ -158,7 +158,7 @@ Steps:
 1. At session start the mod runs `vizpane renderer`. That command syncs the app files and builds `<state root>/bin/viz-render` with `swiftc -O` if the file is missing or its stamp names another plugin version. The build takes a few seconds and happens once per version. If it cannot run (not macOS, no `swiftc`, `VIZPANE_INLINE=off`), the mod remembers that inline is unavailable.
 2. The mod runs `viz-render --cell` once. The helper finds the first parent process with a controlling terminal, reads the terminal's size in cells and in pixels (`TIOCGWINSZ`), and divides by the main screen's scale factor. That gives the cell size in points. If the terminal does not report pixel sizes, the mod uses 8 points wide and an aspect of 2.1.
 3. For each complete `mermaid` fence in a reply, the mod writes the source to the cache and runs `viz-render render.html source.mmd out.png dark|light`. The theme is `light` when Claude Code's theme setting contains `light`, otherwise `dark`. The helper prints the picture size in CSS pixels.
-4. The mod replaces each drawn block by a one-line marker (`▸ diagram N`, or `▸ 도식 N` when `LANG` starts with `ko`) and draws an `Image` per picture under the reply, with a dim caption. A block that failed to render stays as code, and no picture or error row is added for it.
+4. The mod draws the reply in pieces, each picture where its block was: the text before the first picture is the engine's own row (it keeps the reply's bullet), each picture is an `Image` under a dim caption (`diagram N`, or `도식 N` when `LANG` starts with `ko`), and the text after a picture is a `Markdown` element, which Claude Code draws as it draws a reply. A reply that opens with a diagram gets a one-line first row naming it, so the bullet stays. A block that failed to render stays as code, and no picture or error row is added for it.
 5. The size of the picture box in cells comes from the picture's size and the cell size. A small picture fits in at most 120 columns and 30 rows. When 30 rows would shrink the picture below 0.8 of its size, the box grows taller, only as far as 0.8 needs and at most two terminal heights less 6 rows: the transcript scrolls, and text too small to read is worse than a tall picture. A picture wider than the terminal can only shrink.
 6. Next to each picture's label is an **Enlarge** button. Clicking it runs `vizpane push --stdin --zoom` with that diagram: the side pane draws it as vector graphics and opens it enlarged. Outside cmux, it opens the PNG in the system image viewer.
 

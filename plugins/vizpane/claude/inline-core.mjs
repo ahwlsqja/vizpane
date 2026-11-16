@@ -32,17 +32,26 @@ export function mermaidBlocks(text) {
   return blocks;
 }
 
-// Replaces each block whose flag is true by a one-line marker; the others stay as code.
-export function foldBlocks(text, okFlags, label) {
+// Splits a reply at each block whose flag is true, so that each picture can be drawn where its
+// block was: [{ text }, { block: i }, { text }, ...] in reply order, with i the block's index in
+// mermaidBlocks(). Blank lines next to a picture are dropped and an empty text part is left out.
+// Blocks whose flag is not true stay inside the text, as code.
+export function splitBlocks(text, okFlags) {
   const blocks = mermaidBlocks(text);
-  let out = '';
+  const parts = [];
   let at = 0;
+  const addText = (t) => {
+    const trimmed = t.replace(/^\s*\n/, '').replace(/\n\s*$/, '');
+    if (trimmed.trim()) parts.push({ text: trimmed });
+  };
   blocks.forEach((block, i) => {
     if (okFlags[i] !== true) return;
-    out += text.slice(at, block.start) + `▸ ${label} ${i + 1}`;
+    addText(text.slice(at, block.start));
+    parts.push({ block: i });
     at = block.end;
   });
-  return out + text.slice(at);
+  addText(text.slice(at));
+  return parts;
 }
 
 export const LEGIBLE_SCALE = 0.8;

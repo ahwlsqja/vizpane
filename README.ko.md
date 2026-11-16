@@ -6,7 +6,7 @@
 
 터미널에서 쓰는 코딩 에이전트는 Mermaid를 코드 그대로 출력합니다. vizpane은 그 도식을 그림으로 그려 줍니다.
 
-- **Claude Code:** 답변 바로 아래, 대화 안에 그림이 나타나고 코드 블록은 한 줄로 접힙니다. Claude Code mod를 쓰며, cmux 같은 Ghostty 계열 터미널과 kitty에서 동작합니다.
+- **Claude Code:** 대화 안, 코드 블록이 있던 자리에 그림이 나타납니다. Claude Code mod를 쓰며, cmux 같은 Ghostty 계열 터미널과 kitty에서 동작합니다.
 - **Codex:** 기본은 turn이 끝나는 순간 같은 답변을 [cmux](https://cmux.com) 안의 browser 화면에 도식이 그려진 상태로 보여 주는 방식입니다. Codex에는 대화 안에 그림을 넣는 extension point가 없어서, vizpane은 Codex를 terminal relay를 거쳐 실행해 Codex가 자기 transcript에 그림을 그리게 할 수도 있습니다. 이 방식은 opt-in이고 experimental입니다. [대화 안에 그림 넣기 (experimental)](#대화-안에-그림-넣기-experimental)를 참고하세요.
 
 서버도 daemon도 없고, 에이전트가 따로 도구를 호출할 필요도 없습니다.
@@ -19,7 +19,7 @@
 
 | | |
 |---|---|
-| **자동 표시** | Claude Code는 ` ```mermaid ` 블록을 답변 아래에 그립니다. Codex는 이런 블록이 있는 답변을 turn이 끝날 때 화면에 올립니다. inline relay를 켰다면 대신 답변 아래에 그립니다. 도식이 없는 답변은 올라오지 않고, 요청하면 화면에 올릴 수 있습니다. |
+| **자동 표시** | Claude Code는 ` ```mermaid ` 블록을 답변 속 그 자리에 그림으로 그립니다. Codex는 이런 블록이 있는 답변을 turn이 끝날 때 화면에 올립니다. inline relay를 켰다면 대신 답변 아래에 그립니다. 도식이 없는 답변은 올라오지 않고, 요청하면 화면에 올릴 수 있습니다. |
 | **단순한 Mermaid에서 풍부한 그림** | 에이전트는 Mermaid의 작고 안전한 일부만 쓰고, 모양·색·묶음은 `%% viz:` 주석 줄에 적습니다. 화면이 이를 원통(저장소), queue(topic), 계층 상자, 구간 색칠, 단계 번호로 바꿔 그립니다. |
 | **화면은 한 타임라인** | Codex 답변과 `push`로 보낸 내용이 cmux workspace마다 하나의 화면에 badge로 구분되어 쌓입니다. |
 | **답변을 신뢰하지 않음** | 답변에는 웹에서 가져온 글이 섞일 수 있습니다. HTML을 걸러 내고, script는 실행하지 않으며, 원격 이미지와 stylesheet를 제거합니다. |
@@ -54,7 +54,7 @@ flowchart TB
 ```
 ````
 
-그림은 이렇게 나옵니다. Codex에서는 옆 화면에, Claude Code에서는 답변 아래에 그려집니다.
+그림은 이렇게 나옵니다. Claude Code에서는 코드 블록 자리에, Codex에서는 옆 화면에(inline relay를 켰다면 답변 아래에) 그려집니다.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/flow-dark.png">
@@ -127,7 +127,7 @@ relay가 pane의 foreground process이고 cmux 터미널이 출력을 parse하�
 
 ## 사용
 
-에이전트에게 도식으로 설명해 달라고 하면 됩니다. Claude Code에서는 답변 아래에 그림이 나타나고, 옆의 **크게 보기**를 누르면 옆 화면에 도식이 크게 열립니다. Codex에서는 turn이 끝나면 터미널 오른쪽에 화면이 열리고, 키보드 focus는 옮겨 가지 않습니다. experimental inline relay를 켰다면 그림이 대화 안에 나타납니다.
+에이전트에게 도식으로 설명해 달라고 하면 됩니다. Claude Code에서는 답변 속 도식 자리에 그림이 나타나고, 라벨 옆의 **크게 보기**를 누르면 옆 화면에 도식이 크게 열립니다. Codex에서는 turn이 끝나면 터미널 오른쪽에 화면이 열리고, 키보드 focus는 옮겨 가지 않습니다. experimental inline relay를 켰다면 그림이 대화 안에 나타납니다.
 
 화면과 아래 명령은 두 에이전트 모두에서 쓸 수 있습니다. 그 밖의 일은 명령 하나로 합니다. 에이전트에게 "화면에 올려 줘"라고 하면 함께 설치되는 `viz` skill이 실행하고, 직접 실행해도 됩니다.
 

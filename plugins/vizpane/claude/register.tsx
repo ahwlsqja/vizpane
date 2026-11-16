@@ -1,10 +1,9 @@
 import type { EngineInterface, Register } from 'claude-code'
 
-import { fitCells, foldBlocks, hashSource, mermaidBlocks } from './inline-core.mjs'
+import { fitCells, hashSource, mermaidBlocks, splitBlocks } from './inline-core.mjs'
 
-// Draws each ```mermaid block of an assistant reply as a picture inside the transcript, under the
-// reply, and folds the code block to one line. The hook point (AssistantMessage, a picture under
-// the row) and the cell layout follow natsukium/claude-code-figures-plugin (Apache-2.0). The
+// Draws each ```mermaid block of an assistant reply as a picture inside the transcript, where the
+// block was: the reply is drawn in pieces around it (the engine's row, then Markdown). The hook point (AssistantMessage) and the cell layout follow natsukium/claude-code-figures-plugin (Apache-2.0). The
 // picture comes from the viz-render helper (inline/render.swift), which runs Mermaid in the
 // system WebKit; `vizpane renderer` builds it. Without the helper the reply is drawn unchanged.
 
@@ -150,30 +149,38 @@ export const register: Register = on => {
 
     const korean = ((await $.env.get('LANG')) ?? '').startsWith('ko')
     const label = korean ? '도식' : 'diagram'
-    // A block that could not be drawn stays as code and gets no picture.
-    const folded = foldBlocks(text, drawn.map(d => d.ok), label)
-    const row = await next({ ...e, props: { ...e.props, text: folded } })
-    const { Box, Button, Image, Text } = $.ui.resolve(e)
+    // The reply is drawn in pieces, each picture where its block was. The first piece is the engine's
+    // own row (it keeps the reply's bullet and how the engine marks it); the text after a picture is a
+    // Markdown element, which the engine draws as it draws a reply. A block that could not be drawn
+    // stays as code. A reply that opens with a diagram gets a one-line first row naming it.
+    const parts = splitBlocks(text, drawn.map(d => d.ok))
+    const { Box, Button, Image, Markdown, Text } = $.ui.resolve(e)
     const more = korean ? '크게 보기' : 'Enlarge'
     const viewport = viewportOf(e)
-    return (
-      <Box flexDirection="column">
-        {row}
-        {drawn.map((d, i) => {
-          if (!d.ok) return null
-          const box = fitCells(d.width, d.height, viewport, s.cell)
-          return (
-            <Box key={`viz-${i}`} marginLeft={2} marginTop={1} flexDirection="column">
-              <Box flexDirection="row">
-                <Text dimColor>{label} {i + 1}  </Text>
-                <Button key={`viz-more-${i}`} label={more}
-                  onPress={() => { void enlarge($, blocks[i].source, d.file, `${label} ${i + 1}`, korean) }} />
-              </Box>
-              <Image source={{ file: d.file, format: 'png' }} columns={box.columns} rows={box.rows} alt={`[${label} ${i + 1}]`} />
-            </Box>
-          )
-        })}
-      </Box>
-    )
+    const first = parts[0]
+    const lead = 'text' in first ? first.text : `${label} ${first.block + 1}`
+    const rows = [<Box key="viz-lead">{await next({ ...e, props: { ...e.props, text: lead } })}</Box>]
+    for (const [k, part] of parts.entries()) {
+      if (k === 0 && 'text' in part) continue
+      if ('text' in part) {
+        rows.push(<Box key={`viz-t${k}`} marginLeft={2} marginTop={1}><Markdown text={part.text} /></Box>)
+        continue
+      }
+      const i = part.block
+      const d = drawn[i]
+      if (!d.ok) continue
+      const box = fitCells(d.width, d.height, viewport, s.cell)
+      rows.push(
+        <Box key={`viz-${i}`} marginLeft={2} marginTop={1} flexDirection="column">
+          <Box flexDirection="row">
+            <Text dimColor>{label} {i + 1}  </Text>
+            <Button key={`viz-more-${i}`} label={more}
+              onPress={() => { void enlarge($, blocks[i].source, d.file, `${label} ${i + 1}`, korean) }} />
+          </Box>
+          <Image source={{ file: d.file, format: 'png' }} columns={box.columns} rows={box.rows} alt={`[${label} ${i + 1}]`} />
+        </Box>,
+      )
+    }
+    return <Box flexDirection="column">{rows}</Box>
   })
 }

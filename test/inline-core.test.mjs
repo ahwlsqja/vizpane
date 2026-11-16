@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mermaidBlocks, foldBlocks, fitCells, hashSource } from '../plugins/vizpane/claude/inline-core.mjs';
+import { mermaidBlocks, splitBlocks, fitCells, hashSource } from '../plugins/vizpane/claude/inline-core.mjs';
 
 const CELL = { width: 8, aspect: 2 };
 const FLOW = 'flowchart TB\n  A --> B';
@@ -31,12 +31,19 @@ test('an unclosed fence after a complete one keeps the complete one', () => {
   assert.equal(mermaidBlocks(text).length, 1);
 });
 
-test('foldBlocks folds only the rendered blocks, numbering by position', () => {
-  const text = reply('A', '```mermaid', FLOW, '```', 'B', '```mermaid', 'flowchart LR\n  X --> Y', '```', 'C');
-  assert.equal(foldBlocks(text, [true, false], 'diagram'), reply('A', '▸ diagram 1', 'B', '```mermaid', 'flowchart LR\n  X --> Y', '```', 'C'));
-  assert.equal(foldBlocks(text, [false, true], '도식'), reply('A', '```mermaid', FLOW, '```', 'B', '▸ 도식 2', 'C'));
-  assert.equal(foldBlocks(text, [false, false], 'diagram'), text);
-  assert.equal(foldBlocks('no fence', [], 'diagram'), 'no fence');
+test('splitBlocks puts each drawn block between the text around it, numbering by position', () => {
+  const text = reply('A', '', '```mermaid', FLOW, '```', '', 'B', '```mermaid', 'flowchart LR\n  X --> Y', '```', 'C');
+  assert.deepEqual(splitBlocks(text, [true, true]), [{ text: 'A' }, { block: 0 }, { text: 'B' }, { block: 1 }, { text: 'C' }]);
+  // A block that was not drawn stays in the text as code.
+  assert.deepEqual(splitBlocks(text, [true, false]), [{ text: 'A' }, { block: 0 }, { text: reply('B', '```mermaid', 'flowchart LR\n  X --> Y', '```', 'C') }]);
+  assert.deepEqual(splitBlocks(text, [false, false]), [{ text }]);
+  assert.deepEqual(splitBlocks('no fence', []), [{ text: 'no fence' }]);
+});
+
+test('splitBlocks leaves out empty text around a block at the start or the end, and keeps indentation', () => {
+  assert.deepEqual(splitBlocks(reply('```mermaid', FLOW, '```'), [true]), [{ block: 0 }]);
+  assert.deepEqual(splitBlocks(reply('```mermaid', FLOW, '```', '', '  - item'), [true]), [{ block: 0 }, { text: '  - item' }]);
+  assert.deepEqual(splitBlocks(reply('intro', '```mermaid', FLOW, '```', '```mermaid', FLOW, '```'), [true, true]), [{ text: 'intro' }, { block: 0 }, { block: 1 }]);
 });
 
 test('fitCells: width in cells follows the picture, rows keep the aspect ratio', () => {

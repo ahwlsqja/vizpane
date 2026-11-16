@@ -1,7 +1,8 @@
 export type MermaidBlock = { source: string; start: number; end: number }
 export type Cell = { width: number; aspect: number }
 export function mermaidBlocks(text: string): MermaidBlock[]
-export function foldBlocks(text: string, okFlags: boolean[], label: string): string
+export type ReplyPart = { text: string } | { block: number }
+export function splitBlocks(text: string, okFlags: boolean[]): ReplyPart[]
 export function fitCells(
   width: number,
   height: number,

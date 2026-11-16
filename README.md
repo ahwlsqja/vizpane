@@ -10,7 +10,7 @@
 
 Terminal coding agents print Mermaid as source code. vizpane draws the diagram instead.
 
-- **Claude Code:** the picture appears inside the conversation, directly under the answer, and the code block folds to one line. This uses a Claude Code mod and works in Ghostty-based terminals such as cmux, and in kitty.
+- **Claude Code:** the picture appears inside the conversation, in place of the code block. This uses a Claude Code mod and works in Ghostty-based terminals such as cmux, and in kitty.
 - **Codex:** by default the answer is shown with the diagram drawn, in a browser pane inside [cmux](https://cmux.com), the moment the agent finishes its turn. Codex has no extension point for pictures in the conversation, so vizpane can also run Codex through a terminal relay that lets Codex draw the picture in its own transcript. That is opt-in and experimental; see [Inline pictures (experimental)](#inline-pictures-experimental).
 
 There is no server, no daemon and no tool call for the agent to make.
@@ -23,7 +23,7 @@ Click **Enlarge** to open the diagram large in the side pane.
 
 | | |
 |---|---|
-| **Automatic** | In Claude Code, a ` ```mermaid ` block is drawn under the answer. In Codex, an answer with such a block appears in the pane when the turn ends, or under the answer if you turned on the inline relay. Answers without a diagram stay out of the way, and you can show one in the pane on request. |
+| **Automatic** | In Claude Code, a ` ```mermaid ` block is drawn as a picture where it stands in the answer. In Codex, an answer with such a block appears in the pane when the turn ends, or under the answer if you turned on the inline relay. Answers without a diagram stay out of the way, and you can show one in the pane on request. |
 | **Rich pictures from plain Mermaid** | Agents write a small, safe subset of Mermaid and describe shapes, colours and grouping in `%% viz:` comment lines. The viewer turns those into cylinders for stores, queues for topics, layer boxes, shaded phases and numbered steps. |
 | **One timeline in the pane** | Codex answers, and anything you send with `push`, land in one pane per cmux workspace, each with its own badge. |
 | **Untrusted by default** | Answers can contain text fetched from the web. HTML is sanitised, scripts never run, and remote images and stylesheets are removed. |
@@ -58,7 +58,7 @@ flowchart TB
 ```
 ````
 
-and the picture looks like this (in Codex it is in the pane; in Claude Code it is drawn under the answer):
+and the picture looks like this (in Claude Code it is drawn in place of the code block; in Codex it is in the pane, or under the answer with the inline relay):
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/flow-dark.png">
@@ -129,7 +129,7 @@ It is experimental because the relay is the foreground process of the pane and h
 
 ## Use
 
-Ask the agent to explain something with a diagram. In Claude Code the picture appears under the answer; click **Enlarge** next to it to open the diagram enlarged in the side pane. In Codex the pane opens to the right of the terminal when the turn ends, without taking keyboard focus; with the experimental inline relay the picture appears in the conversation instead.
+Ask the agent to explain something with a diagram. In Claude Code the picture appears where the diagram is in the answer; click **Enlarge** next to its label to open the diagram enlarged in the side pane. In Codex the pane opens to the right of the terminal when the turn ends, without taking keyboard focus; with the experimental inline relay the picture appears in the conversation instead.
 
 The pane and these commands work for both agents. Everything else goes through one command. Ask the agent ("show that in the pane") and the bundled `viz` skill runs it, or run it yourself:
 
