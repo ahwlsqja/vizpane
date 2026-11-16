@@ -732,8 +732,8 @@ for (const variantName of ['stub', 'filter']) {
         const stateOf = () => spawnSync('ps', ['-o', 'stat=', '-p', kids[0]], { encoding: 'utf8' }).stdout.trim();
         let state = stateOf();
         const t0 = Date.now();
-        while (!/^T/.test(state) && Date.now() - t0 < 5000) { await sleep(10); state = stateOf(); }
-        assert.match(state, /^T/, `the relay is stopped (${state}) within 5 s of the launcher's stop`);
+        while (!/^T/.test(state) && Date.now() - t0 < 1000) { await sleep(10); state = stateOf(); }
+        assert.match(state, /^T/, `the relay is stopped (${state}) within 1 s of the launcher's stop`);
         console.log(`# relay stopped ${Date.now() - t0} ms after the launcher's stop was seen (${v.name ?? ''})`);
         t.control('CONT');
         await t.waitLog(/^CONT/);

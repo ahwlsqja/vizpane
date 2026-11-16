@@ -72,9 +72,10 @@
  *     terminal. That is a process Codex leaves behind, and also the program itself behind a
  *     launcher that forks (the stock npm `codex` script) when the launcher dies first, for
  *     example a program that restores its terminal on SIGTERM after the launcher is gone.
- *   - A resize reaches the job twice: the terminal's SIGWINCH, then one more
- *     from the relay 40 ms later, after it has updated the size of its pty, for
- *     programs that read the size from stdout.
+ *   - A resize reaches the job more than once: the terminal's SIGWINCH, then up to
+ *     three more from the relay, 40, 160 and 520 ms after the last size change,
+ *     after it has updated the size of its pty, for programs that read the size from
+ *     stdout and were busy when the earlier signal came. Codex treats each as a redraw.
  *   - kill -TSTP <relay pid> alone does nothing: a SIGTSTP is Codex's own stop
  *     or the terminal's group stop, and the relay follows the child's stop. A
  *     stop of the whole job (Ctrl+Z, kill -TSTP %1, SIGSTOP) works.
@@ -650,8 +651,9 @@ static void sync_filter_state(relay_t *r) {
 /* The pane's size goes to the relay's pty, so a program that asks its stdout for the
  * size gets the pane's. The pty is nobody's controlling terminal, so setting its size
  * signals no one; a reader of stdout's size that was woken by the pane's own SIGWINCH
- * before this ran has the old size, so one more SIGWINCH goes to the job, FOLLOW_MS
- * after the last time the size changed. The relay's own copy of it finds the sizes equal and ends the chain. */
+ * before this ran has the old size, so more SIGWINCH go to the job: FOLLOW_MS after the
+ * last time the size changed, then FOLLOW_MORE more with a growing gap. Only a real size change
+ * starts the chain; the relay's own copy of each signal finds the sizes equal and starts none. */
 static void mirror_size(relay_t *r, int follow) {
   struct winsize a, b;
   if (r->pane_dead || ioctl(r->pane, TIOCGWINSZ, &a) != 0) return;
@@ -1080,6 +1082,8 @@ static void relay_loop(relay_t *r) {
       long long left = r->follow_due_ms - mono_ms();
       if (left <= 0) {
         r->follow_due_ms = 0;
+        /* The relay is in the job too, so this signal also reaches its own handler, whose write
+         * to the self-pipe wakes the poll below; that is what picks up the next due time. */
         (void)kill(0, SIGWINCH);
         if (r->follow_left > 0) {
           r->follow_left--;

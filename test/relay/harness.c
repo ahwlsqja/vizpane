@@ -578,7 +578,9 @@ int main(int argc, char **argv) {
    * leader notices the dead relay by itself. */
   {
     int st;
-    if (g_job > 0 && !g_ended) (void)kill(g_job, SIGKILL);
+    /* The whole job, not only its first process: after an aborted test a stopped relay and its
+     * child would otherwise outlive the harness and fail the later leftover check too. */
+    if (g_job > 0 && !g_ended) { (void)kill(-g_job, SIGKILL); (void)kill(g_job, SIGKILL); }
     (void)kill(shell, SIGKILL);
     (void)waitpid(shell, &st, 0);
   }
